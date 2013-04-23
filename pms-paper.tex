@@ -1,0 +1,142 @@
+% ---------------------------------------------------------------------------
+% Author guideline and sample document for EG publication using LaTeX2e input
+% D.Fellner, v1.13, April 29, 2009
+
+\documentclass{egpubl}
+\usepackage{sigrad13}
+
+% --- for  Annual CONFERENCE
+% \ConferenceSubmission % uncomment for Conference submission
+% \ConferencePaper      % uncomment for (final) Conference Paper
+% \STAR                 % uncomment for STAR contribution
+% \Tutorial             % uncomment for Tutorial contribution
+% \ShortPresentation    % uncomment for (final) Short Conference Presentation
+%
+% --- for  CGF Journal
+% \JournalSubmission    % uncomment for submission to Computer Graphics Forum
+% \JournalPaper         % uncomment for final version of Journal Paper
+%
+% --- for  EG Workshop Proceedings
+\WsSubmission    % uncomment for submission to EG Workshop
+% \WsPaper         % uncomment for final version of EG Workshop contribution
+%
+ \electronicVersion % can be used both for the printed and electronic version
+
+% !! *please* don't change anything above
+% !! unless you REALLY know what you are doing
+% ------------------------------------------------------------------------
+
+% for including postscript figures
+% mind: package option 'draft' will replace PS figure by a filname within a frame
+\ifpdf \usepackage[pdftex]{graphicx} \pdfcompresslevel=9
+\else \usepackage[dvips]{graphicx} \fi
+
+\PrintedOrElectronic
+
+% prepare for electronic version of your document
+\usepackage{t1enc,dfadobe}
+
+\usepackage{egweblnk}
+\usepackage{cite}
+
+% For backwards compatibility to old LaTeX type font selection.
+% Uncomment if your document adheres to LaTeX2e recommendations.
+% \let\rm=\rmfamily    \let\sf=\sffamily    \let\tt=\ttfamily
+% \let\it=\itshape     \let\sl=\slshape     \let\sc=\scshape
+% \let\bf=\bfseries
+
+% end of prologue
+
+
+%=====================================================================================
+
+
+% ---------------------------------------------------------------------
+% EG author guidelines plus sample file for EG publication using LaTeX2e input
+% D.Fellner, v1.17, Sep 23, 2010
+
+
+\title[PMS]%
+      {Poor Mans Rendering Of Segmented Data}
+
+% for anonymous conference submission please enter your SUBMISSION ID
+% instead of the author's name (and leave the affiliation blank) !!
+\author[S. Lindholm \& A. Bock]
+       {S. Lindholm$^{1}$
+        and A. Bock$^{1}$
+        \\
+% For Computer Graphics Forum: Please use the abbreviation of your first name.
+         $^1$SciVis Group | Link\"{o}ping University, Sweden
+       }
+
+% ------------------------------------------------------------------------
+
+% if the Editors-in-Chief have given you the data, you may uncomment
+% the following five lines and insert it here
+%
+% \volume{27}   % the volume in which the issue will be published;
+% \issue{1}     % the issue number of the publication
+% \pStartPage{1}      % set starting page
+
+
+%-------------------------------------------------------------------------
+\begin{document}
+
+% \teaser{
+%  \includegraphics[width=\linewidth]{eg_new}
+%  \centering
+%   \caption{New EG Logo}
+% \label{fig:teaser}
+% }
+
+\maketitle
+
+\begin{abstract}
+   Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+
+\begin{classification} % according to http://www.acm.org/class/1998/
+\CCScat{Computer Graphics}{I.3.3}{Picture/Image Generation}{Line and curve generation}
+\end{classification}
+
+\end{abstract}
+
+
+
+
+
+%-------------------------------------------------------------------------
+\section{Introduction}
+
+   Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+
+\cite{Bishop2006}
+
+%-------------------------------------------------------------------------
+\section{Method}
+
+   Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+
+%-------------------------------------------------------------------------
+\subsection{Results}
+
+   Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+
+%-------------------------------------------------------------------------
+\subsection{Discussion}
+
+   Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+
+%------------------------------------------------------------------------
+\subsection{Copyright forms}
+
+You must include your signed Eurographics copyright release form
+when you submit your finished paper. We MUST have this form before
+your paper can be published in the proceedings.
+
+%-------------------------------------------------------------------------
+
+\bibliographystyle{eg-alpha}
+
+\bibliography{bibliography}
+
+\end{document}
