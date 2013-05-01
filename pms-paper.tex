@@ -51,6 +51,9 @@
 %=====================================================================================
 
 
+\usepackage{enumerate}
+
+
 % ---------------------------------------------------------------------
 % EG author guidelines plus sample file for EG publication using LaTeX2e input
 % D.Fellner, v1.17, Sep 23, 2010
@@ -112,9 +115,47 @@
 \cite{Bishop2006}
 
 %-------------------------------------------------------------------------
-\section{Method}
+\section{Iso}
 
-   Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+\subsection{Implementation}
+
+Our implementation is divided into three main parts
+\begin{enumerate}[A]
+\item Extraction of proxy geometry, for each iso-surface, in the form of an closed manifold triangle mesh. This step is performed in object space, potentially as a pre-process. \label{en:mcubes}
+\item Management of fragments from rasterized iso-surfaces, in the form of a sorted linked list intersection points for each pixel. This step is performed in image space during rendering. \label{en:abuffer}
+\end{enumerate}
+For the first part, which takes place \emph{before} rasterization, we use a hardware implementation of the \emph{marching cubes} algorithm, performed as a three step process
+\begin{enumerate}[{\ref{en:mcubes}}.1]
+\item Use Instanced Rendering, to trigger a single vertex per voxel in the volume
+\item Use Geometry Shader, to create the maching cubes triangles
+\item Use Transform Feedback, to capture the output of the geometry shader into a buffer on the GPU
+\end{enumerate}
+For the third part, which takes place \emph{after} rasterization, we use a GPU variant of linked lists based on A-buffers
+\begin{enumerate}[{\ref{en:abuffer}}.1]
+\item {Render the mesh representations for all iso-surfaces (to be rasterized)}
+\item Store all fragments on a per-pixel basis as linked lists in an A-buffer
+\item Sort each linked list based on fragment depth \label{en:abuffer:sort}
+\end{enumerate}
+After the execution of \ref{en:abuffer}, each list of fragments can be interpreted as an ordered list of iso-surface intersections. For volume rendering, this means that the volume rendering integral can be evaluated along each ``ray'' by looping over the list of fragments, treating each fragment as a sample. In this case, sample positions are given by the direction of the ray and the depth of each fragment, while the corresponding  sample values are implicitly given by the particular iso-surface associated with each fragment.
+
+\subsection*{Implications of the implementation}
+
+Perhaps the biggest implication using the approach described in this paper is that the source data is not required to reside on the GPU during rendering. Since all ``samples'' are effectively acquired during the extraction of the iso-surfaces, no additional sampling needs to be performed during rendering. This naturally has both advantages 
+\begin{itemize}\renewcommand{\labelitemi}{$+$}
+\item Source data is not needed during rendering (zero texture fetches).
+\item Very efficient data compression for visually sparse data (i.e, that the amount of visible voxels is small relative the size of the data).
+\item Samples are coherent across pixels which effectively prevents wood grain.
+\end{itemize}
+and disadvantages 
+\begin{itemize}\renewcommand{\labelitemi}{$-$}
+\item Changing the transfer function means re-creating or re-uploading proxy geometry.
+\item Neighboring pixels can have vastly different evaluations due to in-out problem.
+\item Proxy meshes will be large due to granularity.
+\item Proxy meshes can be large due to arbitrary number of  shells for each mesh.
+\item Proxy meshes can be large due to implicit data structure (could be mitigated by additional processing in the CPU).
+\end{itemize}
+The implementation allows for the marching cubes to be performed fully in parallel without explicitly storing the triggering grid. 
+
 
 %-------------------------------------------------------------------------
 \subsection{Results}
