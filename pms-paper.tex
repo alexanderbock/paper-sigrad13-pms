@@ -51,7 +51,47 @@
 %=====================================================================================
 
 
+\usepackage{amsmath,bm}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{caption}
+\usepackage{subcaption} 
 \usepackage{enumerate}
+%\usepackage{enumitem}
+%\usepackage{color}
+\usepackage[usenames,dvipsnames,svgnames]{xcolor}
+\usepackage{balance}
+\usepackage{marginnote}
+
+\DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+
+\def\etal{\textit{et al.}}
+\renewcommand\floatpagefraction{1.0}
+\renewcommand\topfraction{1.0}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}
+\setcounter{totalnumber}{20}
+\setcounter{topnumber}{10}
+\setcounter{bottomnumber}{10}
+\definecolor{MyGreen}{rgb}{0,0.7,0}
+\definecolor{MyWhite}{rgb}{1,1,1}
+\definecolor{MyGray}{rgb}{0.5,0.5,0.5}
+\definecolor{LightGray}{rgb}{0.7,0.7,0.7}
+\definecolor{DarkGray}{rgb}{0.3,0.3,0.3}
+\definecolor{DarkYellow}{rgb}{0.7,0.7,0.0}
+\definecolor{MyNavyBlue}{rgb}{0.2,0.3,0.7}
+\newcommand{\black}[1]{{\color{Black} #1}}
+\newcommand{\white}[1]{{\color{MyWhite} #1}}
+\newcommand{\gray}[1]{{\color{MyGray} #1}}
+\newcommand{\red}[1]{{\color{red} #1}}
+\newcommand{\green}[1]{{\color{MyGreen} #1}}
+\newcommand{\blue}[1]{{\color{MyNavyBlue} #1}}
+\newcommand{\yellow}[1]{{\color{DarkYellow} #1}}
+\newcommand{\maybe}[1]{\yellow{#1}}
+\newcommand{\rout}[1]{\red{\sout{#1}}}
+\newcommand{\repl}[2]{\rout{#1} \green{#2}}
+\newcommand{\fix}[1]{\red{\emph{(#1)}}}
+\newcommand{\Fix}[1]{\begin{itemize} \renewcommand\labelitemi{\red{--}} \item \red{#1} \end{itemize}}
 
 
 % ---------------------------------------------------------------------
@@ -110,7 +150,20 @@
 %-------------------------------------------------------------------------
 \section{Introduction}
 
-   Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+Rendering of segmented data is a core topic in the field of volume rendering. It is characterized in that it utilized external sources for the classification of grid points, rather than relying on user driven classification through, for example, a transfer function. By spending more resources on the classification as a pre-process step, much more reliable feature boundaries can be identified than what is possible through classification schemes applied at render time. Naturally, the topic of rendering segmented data is closely related to that of the actual segmentation. In this paper however, we assume that a full segmentation has been performed such that the \emph{source data} is complemented with a \emph{label volume}, i.e. an integer volume of the same dimensionality of the source data with a single per-voxel label denoting the class membership (material) of the voxel.
+
+The basic idea behind rendering segmented data is identical to standard volume rendering: to select visual parameters based on the class membership of each sample. This is greatly simplified since the required class membership can be accessed directly though the label volume. Therefore, the visual properties are often defined on a per-class basis, rather than in a single global definition for the entire data. The complexity of the per-class visual properties vary depending on what the situation requires and can be anything between a unique color to a fully defined class-specific transfer function and different shading parameters or schemes. In this paper we use a single transfer function per class but apply the same shading scheme to all classes but it should be noted that this is a stylistic choice rather than a requirement of the approach.
+
+A problem that arises when rendering segmented data is that the basic approach to `just sample the label volume' to extract class memberships is not as straight forward as one might think. The simplest solution is, of course, to apply nearest neighbor sampling which is guaranteed to return a valid class membership. Unfortunately, this leads to boundaries with a very blocky appearance. The membership operation is said to have \emph{voxel-resolution}. The most intuitive way to achieve a higher, \emph{pixel-resolution}, membership operation is naturally to allow interpolation when sampling the label volume. This is, however, not guaranteed to return a valid class label unless there is no more than two classes in the entire volume. For example, an interpolation in a boundary area between class $3$ and class $5$ would return a class label of $4$ even if this was not existent at that particular location in the data. An approach to achieve a pixel-resolution membership operation was presented in \cite{Hadwiger2003} called two-level volume rendering. In this approach, all eight neighboring grip points in the label volume are sampled to acquire the information necessary to remap the $3--5$ operation to a $0--1$ range and thereby avoid illegal interpolations. The result is much smoother boundary representations that are more visually pleasing. Unfortunately, any method that requires an additional \emph{seven} samples per sample position along the ray is many times unfeasible.
+
+In this paper we present a novel method that delivers pixel-resolution membership operations with a \emph{single} extra sample. We show that our method produces results visually comparable to methods that utilize full neighborhood sampling while doing so at a $7:1$ reduction of additional samples.
+
+In short
+\begin{itemize}
+\item Nearest neighbor label selection look like shit. 
+\item Interpolated label selection is just downright wrong. 
+\item Two-level volume rendering is too expensive. 
+\end{itemize}
 
 \cite{Bishop2006}
 
