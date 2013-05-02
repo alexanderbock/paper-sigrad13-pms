@@ -62,6 +62,8 @@
 \usepackage[usenames,dvipsnames,svgnames]{xcolor}
 \usepackage{balance}
 \usepackage{marginnote}
+\usepackage{algorithmic}
+\usepackage{algorithm}
 
 \DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
 
@@ -154,28 +156,50 @@ Rendering of segmented data is a core topic in the field of volume rendering. It
 
 The basic idea behind rendering segmented data is identical to standard volume rendering: to select visual parameters based on the class membership of each sample. This is greatly simplified since the required class membership can be accessed directly though the label volume. Therefore, the visual properties are often defined on a per-class basis, rather than in a single global definition for the entire data. The complexity of the per-class visual properties vary depending on what the situation requires and can be anything between a unique color to a fully defined class-specific transfer function and different shading parameters or schemes. In this paper we use a single transfer function per class but apply the same shading scheme to all classes but it should be noted that this is a stylistic choice rather than a requirement of the approach.
 
-A problem that arises when rendering segmented data is that the basic approach to `just sample the label volume' to extract class memberships is not as straight forward as one might think. The simplest solution is, of course, to apply nearest neighbor sampling which is guaranteed to return a valid class membership. Unfortunately, this leads to boundaries with a very blocky appearance. The membership operation is said to have \emph{voxel-resolution}. The most intuitive way to achieve a higher, \emph{pixel-resolution}, membership operation is naturally to allow interpolation when sampling the label volume. This is, however, not guaranteed to return a valid class label unless there is no more than two classes in the entire volume. For example, an interpolation in a boundary area between class $3$ and class $5$ would return a class label of $4$ even if this was not existent at that particular location in the data. An approach to achieve a pixel-resolution membership operation was presented in \cite{Hadwiger2003} called two-level volume rendering. In this approach, all eight neighboring grip points in the label volume are sampled to acquire the information necessary to remap the $3--5$ operation to a $0--1$ range and thereby avoid illegal interpolations. The result is much smoother boundary representations that are more visually pleasing. Unfortunately, any method that requires an additional \emph{seven} samples per sample position along the ray is many times unfeasible.
+A problem that arises when rendering segmented data is that the basic approach to `just sample the label volume' to extract class memberships is not as straight forward as one might think. The simplest solution is, of course, to apply nearest neighbor sampling which is guaranteed to return a valid class membership. Unfortunately, this leads to boundaries with a very blocky appearance. The membership operation is said to have \emph{voxel-resolution}. The most intuitive way to achieve a higher, \emph{pixel-resolution}, membership operation is naturally to allow interpolation when sampling the label volume. This is, however, not guaranteed to return a valid class label unless there is no more than two classes in the entire volume. For example, an interpolation in a boundary area between class $3$ and class $5$ would return a class label of $4$ even if this was not existent at that particular location in the data. An approach to achieve a pixel-resolution membership operation for segmented data, called two-level volume rendering, was presented in \cite{Hadwiger2003}. In this approach, all eight neighboring grip points in the label volume are sampled to acquire the information necessary to remap the $3$--$5$ operation to a $0$--$1$ range and thereby avoid illegal interpolations. The result is much smoother boundary representations that are more visually pleasing. Unfortunately, any method that requires an additional \emph{seven} samples per sample position along the ray is many times unfeasible.
 
-In this paper we present a novel method that delivers pixel-resolution membership operations with a \emph{single} extra sample. We show that our method produces results visually comparable to methods that utilize full neighborhood sampling while doing so at a $7:1$ reduction of additional samples.
+In this paper we present a novel method that delivers pixel-resolution membership operations with a \emph{single} extra sample. We show that our method produces results visually comparable to methods that utilize full neighborhood sampling while requiring a factor of $7:1$ less additional samples compared to the nearest neighbor baseline.
 
-In short
+%-------------------------------------------------------------------------
+\subsection{Implementation}
+
+
+\begin{algorithm}[t]
+\renewcommand{\thealgorithm}{1}
+\caption{\label{code:recon} \emph{Poor Mans Rendering Of Segmented Data.}}
+\begin{algorithmic}
+\REQUIRE \quad\\
+A source volume $V_s$ and a label volume $V_L$ \\
+A set of labels $\mathcal{L} = \{ \mathcal{l}_1, \mathcal{l}_2, \dots \}$ \\
+A transfer function, $\mathrm{TF}_i$ for each label $\mathcal{l}_i$ 
+\STATE \hspace{-3mm}\textbf{Algorithm:}
+\FORALL {points $x$ along ray} \nonumber
+\STATE Hello World!
+%\STATE 1)~ Sample grid neighbors $\x_i$ in $\Omega$ and compute $P(\e_j\mid\x_i)$
+%\FORALL {features $\e_j \in \E$} \nonumber
+%\STATE 2)~ Reconstruct $\hat{z}_{\e_j}(x)$ w.r.t. feature $\e_j$ (Equation~\ref{eq:feature-estimation})
+%\STATE 3)~ Compute reconstruction validity $\V_{\e_j}$ (Equation~\ref{eq:kernel-validity})
+%\FORALL {visual primitives $\mTF_i$ associated with $\e_j$} \nonumber
+%\STATE 4)~ Extract visual properties $C_i$, $\alpha_i$ through $\mTF_i\big(\hat{z}_{\e_j}(x)\big)$
+%\STATE 5)~ Store visual contribution $\Frag_i = \{C_i,\alpha_i,\V_{\e_j}\}$
+%\ENDFOR
+%\ENDFOR
+%\STATE 6)~ Compute final buffer increment at point $x$ as a combination of stored contributions $\{\Frag_i\}$ (see Section~\ref{sec:visual-contrib})
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+
+%-------------------------------------------------------------------------
+\subsection{Discussion}
+
+In short\dots
 \begin{itemize}
 \item Nearest neighbor label selection look like shit. 
 \item Interpolated label selection is just downright wrong. 
 \item Two-level volume rendering is too expensive. 
 \end{itemize}
-
-\cite{Bishop2006}
-
-%-------------------------------------------------------------------------
-\subsection{Results}
-
-   Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
-
-%-------------------------------------------------------------------------
-\subsection{Discussion}
-
-   Abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc.
+\dots which leaves PMS is the only viable option!
 
 %------------------------------------------------------------------------
 \subsection{Copyright forms}
