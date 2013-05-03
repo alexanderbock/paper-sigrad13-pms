@@ -50,7 +50,6 @@
 
 %=====================================================================================
 
-
 \usepackage{amsmath,bm}
 \usepackage{amssymb}
 \usepackage{amsfonts}
@@ -164,27 +163,59 @@ In this paper we present a novel method that delivers pixel-resolution membershi
 \subsection{Implementation}
 
 
+\begin{figure*}
+\centering
+\begin{minipage}{0.44\linewidth}
+\includegraphics[width=1.0\linewidth]{figures/Neighborhood_all}
+\end{minipage}\hfill
+\begin{minipage}{0.27\linewidth}
+\begin{minipage}{1.0\linewidth}
+\includegraphics[width=1.0\linewidth]{figures/Neighborhood_red}
+\end{minipage}
+\begin{minipage}{1.0\linewidth}
+\begin{align}
+l_\mathrm{near} &= 2\nonumber\\
+l_\mathrm{linear} &= 2.2\nonumber\\
+t &= \frac{\mathrm{abs}(2.2-2)}{0.5}\nonumber\\
+\alpha' &= \alpha * (1-t) = 0.96 \alpha\nonumber
+\end{align}
+\end{minipage}
+\end{minipage}\hfill
+\begin{minipage}{0.27\linewidth}
+\begin{minipage}{1.0\linewidth}
+\includegraphics[width=1.0\linewidth]{figures/Neighborhood_blue}
+\end{minipage}
+\begin{minipage}{1.0\linewidth}
+\begin{align}
+l_\mathrm{near} &= 3\nonumber\\
+l_\mathrm{linear} &= 2.6\nonumber\\
+t &= \frac{\mathrm{abs}(2.6-3)}{0.5}\nonumber\\
+\alpha' &= \alpha * (1-t^2) = 0.36 \alpha\nonumber
+\end{align}
+\end{minipage}
+\end{minipage}
+\caption{\label{fig:example-illustration}
+Example computations of ray contributions. The visible ray segment starts inside the red feature (class id 2), and ends inside the blue feature (class id 3). The class membership of the two samples taken in between the features needs to be decided. In our approach, their membership is fully determined by a nearest neighbor query in the label volume (here resulting in $l_\mathrm{near}=2$ and $l_\mathrm{near}=3$ respectively). However, in order to achieve smooth boundaries at pixel-resolution we employ an alpha modulation based on the difference between the the nearest query and another query using linear interpolation (here resulting in $l_\mathrm{near}=2.2$ and $l_\mathrm{near}=2.6$ respectively). 
+}
+\end{figure*}
+
+
 \begin{algorithm}[t]
 \renewcommand{\thealgorithm}{1}
 \caption{\label{code:recon} \emph{Poor Mans Rendering Of Segmented Data.}}
 \begin{algorithmic}
 \REQUIRE \quad\\
 A source volume $V_s$ and a label volume $V_L$ \\
-A set of labels $\mathcal{L} = \{ \mathcal{l}_1, \mathcal{l}_2, \dots \}$ \\
-A transfer function, $\mathrm{TF}_i$ for each label $\mathcal{l}_i$ 
+A set of labels $\{ l_1, l_2, \cdots, l_n \}$ \\
+A transfer function, $\mathrm{TF}_i$ for each label $l_i$ 
 \STATE \hspace{-3mm}\textbf{Algorithm:}
-\FORALL {points $x$ along ray} \nonumber
-\STATE Hello World!
-%\STATE 1)~ Sample grid neighbors $\x_i$ in $\Omega$ and compute $P(\e_j\mid\x_i)$
-%\FORALL {features $\e_j \in \E$} \nonumber
-%\STATE 2)~ Reconstruct $\hat{z}_{\e_j}(x)$ w.r.t. feature $\e_j$ (Equation~\ref{eq:feature-estimation})
-%\STATE 3)~ Compute reconstruction validity $\V_{\e_j}$ (Equation~\ref{eq:kernel-validity})
-%\FORALL {visual primitives $\mTF_i$ associated with $\e_j$} \nonumber
-%\STATE 4)~ Extract visual properties $C_i$, $\alpha_i$ through $\mTF_i\big(\hat{z}_{\e_j}(x)\big)$
-%\STATE 5)~ Store visual contribution $\Frag_i = \{C_i,\alpha_i,\V_{\e_j}\}$
-%\ENDFOR
-%\ENDFOR
-%\STATE 6)~ Compute final buffer increment at point $x$ as a combination of stored contributions $\{\Frag_i\}$ (see Section~\ref{sec:visual-contrib})
+\FORALL {sample points along ray} \nonumber
+\STATE Sample $V_L$ using \emph{nearest neighbor} interp. $\rightarrow l_\mathrm{near}$
+\STATE Sample $V_L$ using \emph{linear} interpolation $\rightarrow l_\mathrm{linear}$
+\STATE Compute fall off parameter $t$ according to Equation~\ref{eq:alpha}
+\STATE Compute alpha modulation according to Equation~\ref{eq:alpha}
+\STATE Sample $V_s$ and select a TF based on $l_\mathrm{near}$
+\STATE Apply alpha modulation to output from selected TF
 \ENDFOR
 \end{algorithmic}
 \end{algorithm}
