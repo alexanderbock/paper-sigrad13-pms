@@ -174,22 +174,22 @@ As previously noted, the implementation relies on sampling the the same volume t
 \begin{align}
 s_\mathrm{near} &= \mathrm{floor}\big(s + vec3(0.5)\big) \label{eq:near}  
 \end{align}
-where $s$ is the original sample position along the ray and $s_\mathrm{linear}$ is the position of the nearest neighbor. For OpenGL both samples can then be accessed through \texttt{texture3D}. Note, that OpenGL uses voxel centric values, as opposed to grid centric values, for \texttt{texture3D} and that the sample positions needs to be mapped accordingly.
+where $s$ is the original sample position along the ray and $s_\mathrm{lin}$ is the position of the nearest neighbor. For OpenGL both samples can then be accessed through \texttt{texture3D}. Note, that OpenGL uses voxel centric values, as opposed to grid centric values, for \texttt{texture3D} and that the sample positions needs to be mapped accordingly.
 \begin{align}
 o &= \frac{0.5}{\mathrm{DataRes}}\\
 s_\mathrm{vc} &= o + (1 - 2o) s_\mathrm{vc}
 \end{align}
  Alternatively. the nearest neighbor sampling can be achieved thorough \texttt{texelFetch} which should not require any additional mapping of the sampling point.
 
-Once the linear and nearest sample points have been computed, they are used to extract the linear and nearest values from the label volume, $l_\mathrm{linear}$ and $l_\mathrm{near}$ respectively.
+Once the linear and nearest sample points have been computed, they are used to extract the linear and nearest values from the label volume, $l_\mathrm{lin}$ and $l_\mathrm{near}$ respectively.
 
 \subsection*{Class Membership and Class Attenuation}
 
-In our approach, the class membership is directly decided by the nearest neighbor sample in the label volume, $l_\mathrm{linear}$. This means that membership itself is defined at voxel-resolution. To achieve smoother class boundaries we introduce a \emph{class attenuation parameter}, $t$.
+In our approach, the class membership is directly decided by the nearest neighbor sample in the label volume, $l_\mathrm{lin}$. This means that membership itself is defined at voxel-resolution. To achieve smoother class boundaries we introduce a \emph{class attenuation parameter}, $t$.
 
 The attenuation parameter is computed from the nearest and linear label values
 \begin{align}
-t &= \mathrm{abs}(l_\mathrm{linear} - l_\mathrm{near})  .  \label{eq:attenuation}
+t &= \mathrm{abs}(l_\mathrm{lin} - l_\mathrm{near})  .  \label{eq:attenuation}
 \end{align}
 Looking at Equation~\ref{eq:attenuation}, we see that $t=0$ as long as the interpolated value is identical to the nearest neighbor value. This will be the case as long as the local neighborhood around the sample point only contains a single class. We can also note that if the local neighborhood contains two or more classes, then $t > 0$. The class attenuation parameter thereby functions as a boundary indicator.
 
@@ -197,37 +197,91 @@ Interpreting the attenuation parameter as a boundary indicator, we use it to adj
 \begin{align}
 \alpha' &= (1-(2t)^2) \times \alpha  .  \label{eq:alpha}
 \end{align}
-
-While Equation~\ref{eq:alpha} largely achieves the desired effect, it is important to note that it introduces a few predictable irregularities (hence the title of the paper). First, $t=0.5$ only corresponds to the half way mark between two labels if their numerical labels are separated by a single unit (e.g. $1$--$2$, $3$--$2$). For all other cases, the opacity will reach zero before the half way mark. Second, in some rare corner cases, the nearest neighbor value may change before the opacity has reached zero, effectively creating a sharper than intended cutoff. In short, we have less fine-tuned control over the opacity behavior across boundary regions. 
-
-What makes Poor Mans Rendering attractive is that the visual impact of the expected irregularities is near insignificant and thus acceptable given the boost in performance that comes with reducing the cost from $7$ additional samples to a single additional sample (relative full neighborhood analysis).
+The full process is described in Algorithm~\ref{code:1}.
 
 \begin{algorithm}[t]
 %\renewcommand{\thealgorithm}{1}
-\caption{\label{code:recon} \emph{Poor Mans Rendering \textbf{with} Label Volume}}
+\caption{\label{code:1} \emph{Poor Mans Rendering \textbf{with} Label Volume}}
 \begin{algorithmic}
 \REQUIRE \quad\\
-A source volume $V_s$ and a label volume $V_L$,\\both present on the GPU\\
+A source volume $V_\mathrm{src}$ and a label volume $V_L$,\\both present on the GPU\\
 A set of labels $\{ l_1, l_2, \cdots, l_n \}$ \\
 A transfer function, $\mathrm{TF}_i$ for each label $l_i$ 
 \STATE \hspace{-3mm}\textbf{Algorithm:}
 \FORALL {sample points along ray} \nonumber
 \STATE $\myitem$ Sample $V_L$ using \emph{nearest neighbor} interp. $\rightarrow l_\mathrm{near}$
-\STATE $\myitem$ Sample $V_L$ using \emph{linear} interpolation $\rightarrow l_\mathrm{linear}$
-\STATE $\myitem$ Compute fall off parameter $t$ according to Eq.~\ref{eq:attenuation}
+\STATE $\myitem$ Sample $V_L$ using \emph{linear} interpolation $\rightarrow l_\mathrm{lin}$
+\STATE $\myitem$ Compute attenuation parameter $t$ according to Eq.~\ref{eq:attenuation}
 \STATE $\myitem$ Compute alpha modulation according to Eq.~\ref{eq:alpha}
-\STATE $\myitem$ Sample $V_s$ using \emph{linear} interpolation $\rightarrow v_\mathrm{linear}$ 
+\STATE $\myitem$ Sample $V_\mathrm{src}$ using \emph{linear} interpolation $\rightarrow v_\mathrm{lin}$ 
 \STATE $\myitem$ Select a TF based on $l_\mathrm{near}$
-\STATE $\myitem$ Evaluate $\mathrm{TF}_\mathrm{near}(v_\mathrm{linear})$ and apply alpha modulation to output
+\STATE $\myitem$ Evaluate $\mathrm{TF}_\mathrm{near}(v_\mathrm{lin})$ 
+\STATE $\myitem$ Apply alpha modulation to output
 \ENDFOR
 \end{algorithmic}
 \end{algorithm}
 
+While Equation~\ref{eq:alpha} largely achieves the desired effect, it is important to note that it introduces a few predictable irregularities (hence the title of the paper). First, $t=0.5$ only corresponds to the half way mark between two labels if their numerical labels are separated by a single unit (e.g. $1$--$2$, $3$--$2$). For all other cases, the opacity will reach zero before the half way mark. Second, in some rare corner cases, the nearest neighbor value may change before the opacity has reached zero, effectively creating a sharper than intended cutoff. In short, we have less fine-tuned control over the opacity behavior across boundary regions. 
+
+What makes Poor Mans Rendering such an attractive trade-off is that the visual impact of the expected irregularities is near insignificant and thus acceptable given the boost in performance (relative full neighborhood analysis).
 
 
 \section{Poor Mans Rendering Without Label Volume}
 
-Finally we present an additional scheme that encodes the data and computes $t$ in such a way that the label volume no longer is required to reside on the GPI.
+In this section we will present a data encoding scheme that eliminates the need to upload the label volume to the GPU. The encoding relies on a set of linear mappings (one for each class) from the source volume to an encoded target volume. The key here is to ensure that the co-domain of the mappings each span a unique value range in the target volume. 
+
+For example, say we have three classes which voxels exhibit overlapping value ranges ($0.3$--$0.5$, $0.2$--$0.7$ and $0.1$--$0.5$). We then map the value rangesof of these classes to three unique value ranges in the target volume
+\begin{align}
+l_1&: [0.3,0.5] \mapsto [0.1,0.3] \nonumber\\
+l_2&: [0.2,0.7] \mapsto [0.4,0.6] \nonumber\\
+l_3&: [0.1,0.5] \mapsto [0.7,0.9] \nonumber  .
+\end{align}
+This makes it possible to determine the class of a sample solely based on which unique range it belong to. Note that interpolation in this volume can still lead to invalid results. The data encoding is performed as a pre-process step and the encoded volume replaces the source volume on the GPU. Meta information from the mappings also needs to be uploaded in order to decode the volume during rendering. The decoding process is simply the inverse of the linear mapping for each class. 
+
+The computation of the attenuation parameter $t$ without a label volume works as follows. Two samples are taken from the encoded volume, with nearest neighbor ($e_\mathrm{near}$) and linear interpolation ($e_\mathrm{lin}$) respectively. First, the nearest neighbor sample is used to identify the label and its valid value range (from the uploaded mapping information)
+\begin{align}
+e_\mathrm{near} \rightarrow l_\mathrm{near},\; [e_\mathrm{min}, e_\mathrm{max}]  .
+\end{align}
+From this, the attenuation parameter $t$ can be computed as 
+\begin{align}
+t &= \mathrm{abs}(v_\mathrm{lin} - \frac{e_\mathrm{max} + e_\mathrm{min}}{2}) - \frac{e_\mathrm{max} - e_\mathrm{min}}{2}  \label{eq:attenuation2}
+\end{align}
+clamped to the $0$--$1$ range. Poor Mans Rendering can now be performed through Equation~\ref{eq:attenuation2} and Equation~\ref{eq:alpha}. The full process is described in Algorithm~\ref{code:2}.
+
+A positive side effect to the encoding is that the user can now specify a single global transfer function without labels while still maintaining separate visual properties for the different classes (since the value ranges are known to be non-overlapping). This is particularly beneficial for systems that are not preciously set up to load and render segmented data or multiple volumes. A potential issue with this type of encoding is the loss of precision that follows from the remapping. Since this naturally becomes a situational trade-off a complete analysis is out of the scope of this paper. What can be said is that as the more narrow the value ranges are per class in the source volume, the less precision will be lost. 
+
+
+\begin{algorithm}[t]
+%\renewcommand{\thealgorithm}{1}
+\caption{\label{code:2} \emph{Poor Mans Rendering \textbf{without} Label Volume}}
+\begin{algorithmic}
+\REQUIRE \quad\\
+A source volume $V_\mathrm{src}$ and a label volume $V_L$\\
+A target volume for the encoding $V_\mathrm{enc}$\\
+A set of labels $\{ l_1, l_2, \cdots, l_n \}$ \\
+A transfer function, $\mathrm{TF}_i$ for each label $l_i$ 
+\STATE \hspace{-3mm}\textbf{Pre-process:}
+\FORALL {labels $l_i$} \nonumber
+\STATE $\myitem$ Find the value range $[r_\mathrm{min}, r_\mathrm{max}]$ covered by by the voxels of class $i$ in $V_\mathrm{src}$
+\STATE $\myitem$ Assign a unique range $[e_\mathrm{min},e_\mathrm{max}]$ where $e_\mathrm{min} = 0.1+0.3 i$ and $e_\mathrm{max} = 0.2+0.3 i$ in $V_\mathrm{enc}$
+\STATE $\myitem$ Linearly map all voxels of class $i$ from $V_\mathrm{src} \mapsto V_\mathrm{enc}$ as $[r_\mathrm{min}, r_\mathrm{max}] \mapsto [e_\mathrm{min},e_\mathrm{max}]$
+\STATE $\myitem$ Save mapping information as $M_i$
+\ENDFOR
+\STATE $\myitem$ Upload $V_t$ to GPU together with meta information of each class mapping
+\STATE \hspace{-3mm}\textbf{Algorithm:}
+\FORALL {sample points along ray} \nonumber
+\STATE $\myitem$ Sample $V_\mathrm{enc}$ using \emph{nearest neighbor} interp. $\rightarrow e_\mathrm{near}$
+\STATE $\myitem$ Identify current label $l_\mathrm{near}$ and valid value range $[e_\mathrm{min}, e_\mathrm{max}]$ based on which unique range that contains $e_\mathrm{near}$ 
+\STATE $\myitem$ Sample $V_\mathrm{enc}$ using \emph{linear} interpolation $\rightarrow e_\mathrm{lin}$
+\STATE $\myitem$ Compute attenuation parameter $t$ according to Eq.~\ref{eq:attenuation2}
+\STATE $\myitem$ Compute alpha modulation according to Eq.~\ref{eq:alpha}
+\STATE $\myitem$ Compute the inverse mapping $e_\mathrm{lin} \mapsto v_\mathrm{lin}$ using $M_j$
+\STATE $\myitem$ Select a TF based on $l_\mathrm{near}$ 
+\STATE $\myitem$ Evaluate $\mathrm{TF}_\mathrm{near}(v_\mathrm{lin})$ 
+\STATE $\myitem$ Apply alpha modulation to output
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
 
 
 \begin{figure*}
@@ -242,7 +296,7 @@ Finally we present an additional scheme that encodes the data and computes $t$ i
 \begin{minipage}{1.0\linewidth}
 \begin{align}
 l_\mathrm{near} &= 2\nonumber\\
-l_\mathrm{linear} &= 2.2\nonumber\\
+l_\mathrm{lin} &= 2.2\nonumber\\
 t &= \frac{\mathrm{abs}(2.2-2)}{0.5}\nonumber\\
 \alpha' &= \alpha \times (1-t^2) = 0.96 \times \alpha\nonumber
 \end{align}
@@ -255,7 +309,7 @@ t &= \frac{\mathrm{abs}(2.2-2)}{0.5}\nonumber\\
 \begin{minipage}{1.0\linewidth}
 \begin{align}
 l_\mathrm{near} &= 3\nonumber\\
-l_\mathrm{linear} &= 2.6\nonumber\\
+l_\mathrm{lin} &= 2.6\nonumber\\
 t &= \frac{\mathrm{abs}(2.6-3)}{0.5}\nonumber\\
 \alpha' &= \alpha \times (1-t^2) = 0.36 \times \alpha\nonumber
 \end{align}
@@ -266,36 +320,6 @@ Example computations of ray contributions. The visible ray segment starts inside
 }
 \end{figure*}
 
-
-\begin{algorithm}[t]
-%\renewcommand{\thealgorithm}{1}
-\caption{\label{code:recon} \emph{Poor Mans Rendering \textbf{without} Label Volume}}
-\begin{algorithmic}
-\REQUIRE \quad\\
-A source volume $V_s$ and a label volume $V_L$\\
-A target volume  $V_t$\\
-A set of labels $\{ l_1, l_2, \cdots, l_n \}$ \\
-A transfer function, $\mathrm{TF}_i$ for each label $l_i$ 
-\STATE \hspace{-3mm}\textbf{Pre-process:}
-\FORALL {labels $l_i$} \nonumber
-\STATE $\myitem$ Find the value range $[r_\mathrm{min}, r_\mathrm{max}]$ covered by by the voxels of class $i$ in $V_s$
-\STATE $\myitem$ Assign a unique range $[q_\mathrm{min},q_\mathrm{max}]$ where $q_\mathrm{min} = 0.1+0.3\times i$ and $q_\mathrm{max} = 0.2+0.3\times i$ in $V_t$
-\STATE $\myitem$ Linearly map all voxels of class $i$ from $V_s \mapsto V_t$ as $[r_\mathrm{min}, r_\mathrm{max}] \mapsto [q_\mathrm{min},q_\mathrm{max}]$
-\STATE $\myitem$ Save mapping information as $M_i$
-\ENDFOR
-\STATE $\myitem$ Upload $V_t$ to GPU together with meta information in each class mapping
-\STATE \hspace{-3mm}\textbf{Algorithm:}
-\FORALL {sample points along ray} \nonumber
-\STATE $\myitem$ Sample $V_t$ using \emph{nearest neighbor} interp. $\rightarrow t_\mathrm{near}$
-\STATE $\myitem$ Compute current label $l_\mathrm{near}$ based on which unique range that contains $t_\mathrm{near}$ 
-\STATE $\myitem$ Compute the alpha modulation from $|t_\mathrm{near}-t_\mathrm{linear}|$, according to Eq.~\ref{eq:alpha}
-\STATE $\myitem$ Sample $V_t$ using \emph{linear} interpolation $\rightarrow t_\mathrm{linear}$
-\STATE $\myitem$ Compute the inverse mapping $t_\mathrm{linear} \mapsto v_\mathrm{linear}$ using $M_j$
-\STATE $\myitem$ Select a TF based on $l_\mathrm{near}$ 
-\STATE $\myitem$ Evaluate $\mathrm{TF}_\mathrm{near}(v_t)$ 
-\ENDFOR
-\end{algorithmic}
-\end{algorithm}
 
 
 %-------------------------------------------------------------------------
