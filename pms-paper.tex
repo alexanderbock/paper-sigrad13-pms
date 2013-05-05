@@ -330,7 +330,7 @@ Example computations of ray contributions. The visible ray segment starts inside
 %-------------------------------------------------------------------------
 \subsection{Discussion}
 
-In this paper we have presented an approach to achieve smooth boundary transitions when rendering segmented data while maintaining acceptable framerates. The approach drastically reduces the amount of samples necessary to achieve the boundary smoothness, but does so at the cost of introducing artifacts. The artifacts, however, are controllable and many times note even visually detectable. As such, our approach fills the gap between nearest neighbor class assignment and methods that rely on full neighborhood analysis. We believe that this can be useful in many cases where acceptable framerates are a necessity.
+In this paper we have presented an approach to achieve smooth boundary transitions when rendering segmented data while maintaining acceptable framerates. The approach drastically reduces the amount of samples necessary to achieve the boundary smoothness, but does so at the cost introducing minor irregularities. As such, our approach fills the gap between nearest neighbor class assignment and methods that rely on full neighborhood analysis. We believe that the approach can be useful in many cases where acceptable framerates are a necessity, particularly when used together with the presented encoding scheme.
 
 %In short\dots
 %\begin{itemize}
@@ -339,6 +339,11 @@ In this paper we have presented an approach to achieve smooth boundary transitio
 %\item Two-level volume rendering is too expensive. 
 %\end{itemize}
 %\dots which leaves PMS is the only viable option!
+
+%------------------------------------------------------------------------
+\subsection{Acknowledgments}
+
+David Karlsson, technical director at Interactive Institute, for pointing out the gap in the literature that this method fills.
 
 %------------------------------------------------------------------------
 \subsection{Copyright forms}
