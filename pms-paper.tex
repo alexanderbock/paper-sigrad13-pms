@@ -147,6 +147,10 @@ In this paper, we present a set of techniques for fast and efficient rendering o
 
 
 
+\def\myitem{\diamond}
+
+
+
 
 %-------------------------------------------------------------------------
 \section{Introduction}
@@ -157,29 +161,73 @@ The basic idea behind rendering segmented data is identical to standard volume r
 
 A problem that arises when rendering segmented data is that the basic approach to `just sample the label volume' to extract class memberships is not as straight forward as one might think. The simplest solution is, of course, to apply nearest neighbor sampling, which is guaranteed to return a valid class membership. Unfortunately, this leads to boundaries with a very blocky appearance. The membership operation is said to have \emph{voxel-resolution}. The most intuitive way to achieve a higher, \emph{pixel-resolution}, membership operation is naturally to allow interpolation when sampling the label volume. This is, however, not guaranteed to return a valid class label unless there is no more than two classes in the entire volume. For example, an interpolation in a boundary area between class $3$ and class $5$ would return a class label of $4$ even if this was not existent at that particular location in the data. An approach to achieve a pixel-resolution membership operation for segmented data, called two-level volume rendering, was presented in \cite{Hadwiger2003}. In this approach, all eight neighboring grip points in the label volume are sampled to acquire the information necessary to remap the $3$--$5$ operation to a $0$--$1$ range and thereby avoid illegal interpolations. The result is much smoother boundary representations that are more visually pleasing. Unfortunately, the method requires an additional \emph{seven} samples per step along the ray which is many times unfeasible.
 
-In this paper we present a novel method that delivers pixel-resolution membership operations with a \emph{single} extra sample. The core of our approach is to sample the level volume twice at the same location, with and without interpolation. The difference difference between these values is then used to smoothen the visual representation of class boundaries without creating incorrectly interpolated class values. We show that our method produces results visually comparable to methods that utilize full neighborhood sampling while requiring a factor of $7:1$ less additional samples. Additionally, we also present a data compression approach that removes the need to have the label volume accessible during rendering.
+In this paper we present a novel method that delivers results comparable to pixel-resolution schemes while only requiring a \emph{single} extra sample. The core of our approach is to sample the level volume twice at the same location, with and without interpolation. The difference between the two values is then used to smoothen the visual representation near class boundaries without creating incorrectly interpolated class values. We show that our method produces results visually comparable to methods that utilize full neighborhood sampling while requiring a factor of $7:1$ less additional samples. Additionally, we also present a data compression approach that removes the need to have the label volume accessible during rendering.
 
 %-------------------------------------------------------------------------
-\subsection{Implementation}
+\section{Poor Mans Rendering With Label Volume}
+
+The implementation will be presented in three steps. First we provide a few details on how to sample a single texture with different interpolation kernels in OpenGL. We then present how to compute the actual class membership of each sample as well as the attenuation parameter $t$ which is used to smooth the boundaries. 
+
+\subsection*{Nearest Neighbor and Linear Sampling}
 
 As previously noted, the implementation relies on sampling the the same volume twice with different interpolation kernels. For many architectures, however, a single texture can only be associated with a single sampling mode. One way to get around this restriction is to always force the label volume to be associated with linear interpolation. The nearest neighbor sample can then be accessed by adding an offset that forces this sample directly to the center of the nearest voxel. The nearest grid point can be accessed as follows
 \begin{align}
 s_\mathrm{near} &= \mathrm{floor}\big(s + vec3(0.5)\big) \label{eq:near}  
 \end{align}
-where $s$ is the original sample position along the ray and $s_\mathrm{linear}$ is the position of the nearest neighbor. For OpenGL both samples can then be accessed through \texttt{texture3D}. Note, that OpenGL uses voxel centric values, as opposed to grid centric values, for \texttt{texture3D} and that the sample positions needs to be mapped accordingly. Alternatively. the nearest neighbor sampling can be achieved thorough \texttt{texelFetch} which should not require additional mapping of the sampling point.
-
-Once the linear and nearest sample points have been computed, they are used to extract the linear and nearest values from the label volume, $l_\mathrm{linear}$ and $l_\mathrm{near}$ respectively. The class membership of the current sample position is directly set to \dots\dots\dots
-
+where $s$ is the original sample position along the ray and $s_\mathrm{linear}$ is the position of the nearest neighbor. For OpenGL both samples can then be accessed through \texttt{texture3D}. Note, that OpenGL uses voxel centric values, as opposed to grid centric values, for \texttt{texture3D} and that the sample positions needs to be mapped accordingly.
 \begin{align}
-t &= \frac{\mathrm{abs}(l_\mathrm{linear} - l_\mathrm{near})}{0.5} \label{eq:gamma}
+o &= \frac{0.5}{\mathrm{DataRes}}\\
+s_\mathrm{vc} &= o + (1 - 2o) s_\mathrm{vc}
+\end{align}
+ Alternatively. the nearest neighbor sampling can be achieved thorough \texttt{texelFetch} which should not require any additional mapping of the sampling point.
+
+Once the linear and nearest sample points have been computed, they are used to extract the linear and nearest values from the label volume, $l_\mathrm{linear}$ and $l_\mathrm{near}$ respectively.
+
+\subsection*{Class Membership and Class Attenuation}
+
+In our approach, the class membership is directly decided by the nearest neighbor sample in the label volume, $l_\mathrm{linear}$. This means that membership itself is defined at voxel-resolution. To achieve smoother class boundaries we introduce a \emph{class attenuation parameter}, $t$.
+
+The attenuation parameter is computed from the nearest and linear label values
+\begin{align}
+t &= \mathrm{abs}(l_\mathrm{linear} - l_\mathrm{near})  .  \label{eq:attenuation}
+\end{align}
+Looking at Equation~\ref{eq:attenuation}, we see that $t=0$ as long as the interpolated value is identical to the nearest neighbor value. This will be the case as long as the local neighborhood around the sample point only contains a single class. We can also note that if the local neighborhood contains two or more classes, then $t > 0$. The class attenuation parameter thereby functions as a boundary indicator.
+
+Interpreting the attenuation parameter as a boundary indicator, we use it to adjust the opacity of the current sample. Ideally, we want full opacity when the samples are fully inside a single class and zero opacity when samples are half way in between two (or more) classes. Unfortunately, this requires us to know all classes that effect the interpolated value, which in turn would require us to sample the entire neighborhood in the label volume (which we don't want to do). Instead, we always map the opacity to zero as $t$ reaches $0.5$ 
+\begin{align}
+\alpha' &= (1-(2t)^2) \times \alpha  .  \label{eq:alpha}
 \end{align}
 
-\begin{align}
-\alpha' &= \alpha \times (1-t^2) = 0.96 \times \alpha \label{eq:alpha}
-\end{align}
+While Equation~\ref{eq:alpha} largely achieves the desired effect, it is important to note that it introduces a few predictable irregularities (hence the title of the paper). First, $t=0.5$ only corresponds to the half way mark between two labels if their numerical labels are separated by a single unit (e.g. $1$--$2$, $3$--$2$). For all other cases, the opacity will reach zero before the half way mark. Second, in some rare corner cases, the nearest neighbor value may change before the opacity has reached zero, effectively creating a sharper than intended cutoff. In short, we have less fine-tuned control over the opacity behavior across boundary regions. 
+
+What makes Poor Mans Rendering attractive is that the visual impact of the expected irregularities is near insignificant and thus acceptable given the boost in performance that comes with reducing the cost from $7$ additional samples to a single additional sample (relative full neighborhood analysis).
+
+\begin{algorithm}[t]
+%\renewcommand{\thealgorithm}{1}
+\caption{\label{code:recon} \emph{Poor Mans Rendering \textbf{with} Label Volume}}
+\begin{algorithmic}
+\REQUIRE \quad\\
+A source volume $V_s$ and a label volume $V_L$,\\both present on the GPU\\
+A set of labels $\{ l_1, l_2, \cdots, l_n \}$ \\
+A transfer function, $\mathrm{TF}_i$ for each label $l_i$ 
+\STATE \hspace{-3mm}\textbf{Algorithm:}
+\FORALL {sample points along ray} \nonumber
+\STATE $\myitem$ Sample $V_L$ using \emph{nearest neighbor} interp. $\rightarrow l_\mathrm{near}$
+\STATE $\myitem$ Sample $V_L$ using \emph{linear} interpolation $\rightarrow l_\mathrm{linear}$
+\STATE $\myitem$ Compute fall off parameter $t$ according to Eq.~\ref{eq:attenuation}
+\STATE $\myitem$ Compute alpha modulation according to Eq.~\ref{eq:alpha}
+\STATE $\myitem$ Sample $V_s$ using \emph{linear} interpolation $\rightarrow v_\mathrm{linear}$ 
+\STATE $\myitem$ Select a TF based on $l_\mathrm{near}$
+\STATE $\myitem$ Evaluate $\mathrm{TF}_\mathrm{near}(v_\mathrm{linear})$ and apply alpha modulation to output
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
 
 
 
+\section{Poor Mans Rendering Without Label Volume}
+
+Finally we present an additional scheme that encodes the data and computes $t$ in such a way that the label volume no longer is required to reside on the GPI.
 
 
 \begin{figure*}
@@ -218,30 +266,6 @@ Example computations of ray contributions. The visible ray segment starts inside
 }
 \end{figure*}
 
-
-\def\myitem{\diamond}
-
-
-\begin{algorithm}[t]
-%\renewcommand{\thealgorithm}{1}
-\caption{\label{code:recon} \emph{Poor Mans Rendering \textbf{with} Label Volume}}
-\begin{algorithmic}
-\REQUIRE \quad\\
-A source volume $V_s$ and a label volume $V_L$,\\both present on the GPU\\
-A set of labels $\{ l_1, l_2, \cdots, l_n \}$ \\
-A transfer function, $\mathrm{TF}_i$ for each label $l_i$ 
-\STATE \hspace{-3mm}\textbf{Algorithm:}
-\FORALL {sample points along ray} \nonumber
-\STATE $\myitem$ Sample $V_L$ using \emph{nearest neighbor} interp. $\rightarrow l_\mathrm{near}$
-\STATE $\myitem$ Sample $V_L$ using \emph{linear} interpolation $\rightarrow l_\mathrm{linear}$
-\STATE $\myitem$ Compute fall off parameter $t$ according to Eq.~\ref{eq:gamma}
-\STATE $\myitem$ Compute alpha modulation according to Eq.~\ref{eq:alpha}
-\STATE $\myitem$ Sample $V_s$ using \emph{linear} interpolation $\rightarrow v_\mathrm{linear}$ 
-\STATE $\myitem$ Select a TF based on $l_\mathrm{near}$
-\STATE $\myitem$ Evaluate $\mathrm{TF}_\mathrm{near}(v_\mathrm{linear})$ and apply alpha modulation to output
-\ENDFOR
-\end{algorithmic}
-\end{algorithm}
 
 \begin{algorithm}[t]
 %\renewcommand{\thealgorithm}{1}
