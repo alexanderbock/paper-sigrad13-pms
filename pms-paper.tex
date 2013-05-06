@@ -140,7 +140,8 @@
 In this paper we present a set of techniques for fast and efficient rendering of segmented data. Our approach utilizes the expected difference between two co-located samples of a label volume, taken with different interpolation kernels, to estimate a feature boundary. This allows us to achieve smooth class boundaries without, as with previous methods, needing to sample all eight neighbors in the label volume. 
 
 \begin{classification} % according to http://www.acm.org/class/1998/
-\CCScat{Computer Graphics}{I.3.3}{Picture/Image Generation}{Line and curve generation}
+\CCScat{Computer Graphics}{I.3.6}{Picture/Image Generation}{Antialiasing}
+\CCScat{Computer Graphics}{I.4.6}{Segmentation}{Pixel classification}
 \end{classification}
 
 \end{abstract}
@@ -160,9 +161,9 @@ Rendering of segmented data is a core topic in the field of volume rendering. It
 
 The basic idea behind rendering segmented data is identical to standard volume rendering: to select visual parameters based on the class membership of each sample. This is greatly simplified since the required class membership can be accessed directly though the label volume. Therefore, the visual properties are often defined on a per-class basis, rather than in a single global definition for the entire data. The complexity of the per-class visual properties vary depending on what the situation requires and can span from a unique color to a fully defined class-specific transfer function. In this paper we use a single transfer function per class but apply the same shading scheme to all classes, however, it should be noted that this is a stylistic choice rather than a requirement of the approach.
 
-A problem that arises when rendering segmented data is that the basic approach to `just sample the label volume' to extract class memberships is not as straight forward as one might think. The simplest solution is, of course, to apply nearest neighbor sampling, which is guaranteed to return a valid class membership. Unfortunately, this leads to boundaries with a very blocky appearance (see Figure~\ref{fig:nearestexample}). The membership operation is said to have \emph{voxel-resolution}. The most intuitive way to achieve a higher, \emph{pixel-resolution}, membership operation is naturally to allow for interpolation when sampling the label volume. This is, however, not guaranteed to return a valid class label unless there is no more than two classes in the entire volume. For example, an interpolation in a boundary area between class $3$ and class $5$ would return a class label of $4$ even if this was not existent at that particular location in the data (see Figure~\ref{fig:linearexample}). An approach to achieve a pixel-resolution membership operation for segmented data, called two-level volume rendering, was presented in \cite{Hadwiger2003}. In this approach, all eight neighboring grip points in the label volume are sampled to acquire the information necessary to remap the $3$--$5$ operation to a $0$--$1$ range and thereby avoid illegal interpolations. The result is much smoother boundary representations that are more visually pleasing. Unfortunately, the method requires an additional \emph{seven} samples per step along the ray which is many times unfeasible.
+A problem that arises when rendering segmented data is that the basic approach to `just sample the label volume' to extract class memberships is not as straight forward as one might think. The simplest solution is, of course, to apply nearest neighbor sampling, which is guaranteed to return a valid class membership. Unfortunately, this leads to boundaries with a very blocky appearance (see Figure~\ref{fig:nearestexample}). The membership operation is said to have \emph{voxel-resolution}. The most intuitive way to achieve a higher, \emph{pixel-resolution}, membership operation is naturally to allow for interpolation when sampling the label volume. This is, however, not guaranteed to return a valid class label unless there is no more than two classes in the entire volume. For example, an interpolation in a boundary area between class $3$ and class $5$ would return a class label of $4$ even if this was not existent at that particular location in the data (see Figure~\ref{fig:linearexample}). An approach to achieve a pixel-resolution membership operation for segmented data, called two-level volume rendering, was presented in \cite{Hadwiger2003}. In this approach, all eight neighboring grid points in the label volume are sampled to acquire the information necessary to remap the $3$--$5$ operation to a $0$--$1$ range and thereby avoid illegal interpolations. The result is much smoother boundary representations that are more visually pleasing. Unfortunately, the method requires an additional \emph{seven} samples per step along the ray which is many times unfeasible.
 
-In this paper we present a novel method that delivers results comparable to pixel-resolution schemes while only requiring a \emph{single} extra sample. The core of our approach is to sample the level volume twice at the same location, with and without interpolation. The difference between the two values is then used to smoothen the visual representation near class boundaries without creating incorrectly interpolated class values. We show that our method produces results visually comparable to methods that utilize full neighborhood sampling while requiring a factor of $7:1$ less additional samples. Additionally, we also present a data compression approach that removes the need to have the label volume accessible during rendering.
+In this paper we present a novel method that delivers results comparable to pixel-resolution schemes while only requiring a \emph{single} extra sample. The core of our approach is to sample the level volume twice at the same location, with and without interpolation (i.e, with nearest neighbor vs. linear filters). The difference between the two values is then used to smoothen the visual representation near class boundaries without creating incorrectly interpolated class values. We show that our method produces results visually comparable to methods that utilize full neighborhood sampling while requiring a factor of $7:1$ less additional samples. Additionally, we also present a data compression approach that removes the need to have the label volume accessible during rendering.
 
 %-------------------------------------------------------------------------
 \section{Poor Man's Rendering With Label Volume}
@@ -182,12 +183,8 @@ As previously noted, the implementation relies on sampling the the same volume t
 \begin{align}
 s_\mathrm{near} &= \mathrm{floor}\big(s + vec3(0.5)\big) \label{eq:near}  
 \end{align}
-where $s$ is the original sample position along the ray and $s_\mathrm{lin}$ is the position of the nearest neighbor. For OpenGL both samples can then be accessed through \texttt{texture3D}. Note, that OpenGL uses voxel centric values, as opposed to grid centric values, for \texttt{texture3D} and that the sample positions needs to be mapped accordingly.
-\begin{align}
-o &= \frac{0.5}{\mathrm{DataRes}}\\
-s_\mathrm{vc} &= o + (1 - 2o) s_\mathrm{vc}
-\end{align}
- Alternatively. the nearest neighbor sampling can be achieved through \texttt{texelFetch} which should not require any additional mapping of the sampling point.
+where $s$ is the original sample position along the ray and $s_\mathrm{lin}$ is the position of the nearest neighbor. For OpenGL/GLSL both samples can then be accessed using \texttt{texture3D}. Note, that OpenGL uses voxel centric values, as opposed to grid centric values, for \texttt{texture3D} and that the sample positions needs to be mapped accordingly.
+ Alternatively. the nearest neighbor sampling can be achieved using \texttt{texelFetch} which should not require any additional mapping of the sampling point.
 
 Once the linear and nearest sample points have been computed, they are used to extract the linear and nearest values from the label volume, $l_\mathrm{lin}$ and $l_\mathrm{near}$ respectively.
 
@@ -199,11 +196,11 @@ The attenuation parameter is computed from the nearest and linear label values
 \begin{align}
 t &= \mathrm{abs}(l_\mathrm{lin} - l_\mathrm{near})  .  \label{eq:attenuation}
 \end{align}
-Looking at Equation~\ref{eq:attenuation}, we see that $t=0$ as long as the interpolated value is identical to the nearest neighbor value. This will be the case as long as the local neighborhood around the sample point only contains a single class. We can also note that if the local neighborhood contains two or more classes, then $t > 0$. The class attenuation parameter thereby functions as a boundary indicator.
+In Equation~\ref{eq:attenuation}, we see that $t=0$ as long as the interpolated value is identical to the nearest neighbor value. This will be the case as long as the local neighborhood around the sample point only contains a single class. We can also note that if the local neighborhood contains two or more classes, then $t > 0$. The class attenuation parameter thereby functions as a boundary indicator.
 
 Interpreting the attenuation parameter as a boundary indicator, we use it to adjust the opacity of the current sample. Ideally, we want full opacity when the samples are fully inside a single class and zero opacity when samples are half way in between two (or more) classes. Unfortunately, this requires us to know all classes that effect the interpolated value, which in turn would require us to sample the entire neighborhood in the label volume (which we don't want to do). Instead, we always map the opacity to zero as $t$ reaches $0.5$ 
 \begin{align}
-\alpha' &= (1-(2t)^2) \cdot \alpha  .  \label{eq:alpha}
+\alpha' &= (1-(2t)^2) \,\alpha  .  \label{eq:alpha}
 \end{align}
 The full process is described in Algorithm~\ref{code:1}.
 
@@ -230,7 +227,7 @@ A transfer function, $\mathrm{TF}_i$ for each label $l_i$
 \end{algorithmic}
 \end{algorithm}
 
-While Equation~\ref{eq:alpha} largely achieves the desired effect, it is important to note that it introduces a few predictable irregularities (hence the title of the paper). First, $t=0.5$ only corresponds to the half way mark between two labels if their numerical labels are separated by a single unit (e.g. $1$--$2$, $3$--$2$). For all other cases, the opacity will reach zero before the half way mark. Second, in some rare corner cases, the nearest neighbor value may change before the opacity has reached zero, effectively creating a sharper than intended cutoff. In short, we have less fine-tuned control over the opacity behavior across boundary regions. 
+While Equation~\ref{eq:alpha} largely achieves the desired effect, it is important to note that it introduces a few predictable irregularities. First, $t=0.5$ only corresponds to the half way mark between two labels if their numerical labels are separated by a single unit (e.g. $1$--$2$, $3$--$2$). For all other cases, the opacity will reach zero before the half way mark. Second, in some rare corner cases, the nearest neighbor value may change before the opacity has reached zero, effectively creating a sharper than intended cutoff. In short, we have less fine-tuned control over the opacity behavior across boundary regions. 
 
 What makes Poor Man's Rendering such an attractive trade-off is that the visual impact of the expected irregularities is near insignificant and thus acceptable given the increase in performance compared to the full neighborhood analysis.
 
@@ -239,13 +236,13 @@ What makes Poor Man's Rendering such an attractive trade-off is that the visual 
 
 In this section we present a data encoding scheme that eliminates the need to upload the label volume to the GPU. The encoding relies on a set of linear mappings (one for each class) from the source volume to an encoded target volume. The key here is to ensure that the co-domain of the mappings each span a unique value range in the target volume. 
 
-For example, if we have three classes which voxels exhibit overlapping value ranges ($0.3$--$0.5$, $0.2$--$0.7$ and $0.1$--$0.5$). We then map the value ranges of of these classes to three unique value ranges in the target volume
+For example, if we have three classes which voxels exhibit overlapping value ranges ($0.3$--$0.5$, $0.2$--$0.7$ and $0.1$--$0.5$). We then map the value ranges of these classes to three unique value ranges in the target volume
 \begin{align}
 l_1&: [0.3,0.5] \mapsto [0.1,0.3] \nonumber\\
 l_2&: [0.2,0.7] \mapsto [0.4,0.6] \nonumber\\
 l_3&: [0.1,0.5] \mapsto [0.7,0.9] \nonumber  .
 \end{align}
-This makes it possible to determine the class of a sample solely based on which unique range it belong to. Note that interpolation in this volume can still lead to invalid results. The data encoding is performed as a pre-process step and the encoded volume replaces the source volume on the GPU. Meta information from the mappings also needs to be uploaded in order to decode the volume during rendering. The decoding process is simply the inverse of the linear mapping for each class. 
+This mapping makes it possible to determine the class of a sample solely based on which unique range it belong to. Note that interpolation in this volume can still lead to invalid results. The data encoding is performed as a pre-process step and the encoded volume replaces the source volume on the GPU. Meta information from the mappings also needs to be uploaded in order to decode the volume during rendering. The decoding process is simply the inverse of the linear mapping for each class. 
 
 The computation of the attenuation parameter $t$ without a label volume works as follows. Two samples are taken from the encoded volume, with nearest neighbor ($e_\mathrm{near}$) and linear interpolation ($e_\mathrm{lin}$) respectively. First, the nearest neighbor sample is used to identify the label and its valid value range (from the uploaded mapping information)
 \begin{align}
@@ -257,7 +254,7 @@ t &= \mathrm{abs}(v_\mathrm{lin} - \frac{e_\mathrm{max} + e_\mathrm{min}}{2}) - 
 \end{align}
 clamped to the $0$--$1$ range. Poor Man's Rendering can now be performed using Equations~\ref{eq:attenuation2}~and~\ref{eq:alpha}. The full process is described in Algorithm~\ref{code:2}.
 
-A positive side effect to the encoding is that the user can now specify a single global transfer function without labels while still maintaining separate visual properties for the different classes (since the value ranges are known to be non-overlapping). This is particularly beneficial for systems that are not preciously set up to load and render segmented data or multiple volumes. A potential issue with this type of encoding is the loss of precision that follows from the remapping. Since this naturally becomes a situational trade-off a complete analysis is out of the scope of this paper. What can be said is that as the more narrow the value ranges are per class in the source volume, the less precision will be lost. 
+A positive side effect to the encoding is that the user can now specify a single global transfer function without labels while still maintaining separate visual properties for the different classes (since the value ranges are known to be non-overlapping). This is particularly beneficial for systems that are not previously set up to load and render segmented data or multiple volumes. A potential issue with this type of encoding is the loss of precision that follows from the remapping. Since this naturally becomes a situational trade-off a complete analysis is out of the scope of this paper. What can be said is that as the more narrow the value ranges are per class in the source volume, the less precision will be lost. 
 
 
 \begin{algorithm}[t]
@@ -308,8 +305,8 @@ A transfer function, $\mathrm{TF}_i$ for each label $l_i$
 \begin{align}
 l_\mathrm{near} &= 2\nonumber\\
 l_\mathrm{lin} &= 2.2\nonumber\\
-t &= \frac{\mathrm{abs}(2.2-2)}{0.5}\nonumber\\
-\alpha' &= \alpha \times (1-t^2) = 0.96 \times \alpha\nonumber
+t &= \mathrm{abs}(2.2-2)\nonumber\\
+\alpha' &= (1-(2t)^2) \,\alpha = 0.96 \,\alpha \nonumber
 \end{align}
 \end{minipage}
 \end{minipage}\hfill
@@ -321,8 +318,8 @@ t &= \frac{\mathrm{abs}(2.2-2)}{0.5}\nonumber\\
 \begin{align}
 l_\mathrm{near} &= 3\nonumber\\
 l_\mathrm{lin} &= 2.6\nonumber\\
-t &= \frac{\mathrm{abs}(2.6-3)}{0.5}\nonumber\\
-\alpha' &= \alpha \times (1-t^2) = 0.36 \times \alpha\nonumber
+t &= \mathrm{abs}(2.6-3)\nonumber\\
+\alpha' &= (1-(2t)^2) \,\alpha = 0.36 \,\alpha \nonumber
 \end{align}
 \end{minipage}
 \end{minipage}
