@@ -159,7 +159,7 @@ In this paper we present a set of techniques for fast and efficient rendering of
 
 Rendering of segmented data is a core topic in the field of volume rendering. It is characterized in that it utilized external sources for the classification of grid points, rather than relying on user driven classification through, for example, a transfer function. By spending more resources on the classification as a pre-process step, much more reliable feature boundaries can be identified than what is possible through classification schemes applied at rendering time. Naturally, the topic of rendering segmented data is closely related to that of the actual segmentation. In this paper however, we assume that a full segmentation has been performed such that the \emph{source data} is complemented with a \emph{label volume}, i.e. an integer volume of the same dimensionality of the source data with a single per-voxel label denoting the class membership (material) of the voxel.
 
-The basic idea behind rendering segmented data is identical to standard volume rendering: to select visual parameters based on the class membership of each sample. This is greatly simplified since the required class membership can be accessed directly though the label volume. Therefore, the visual properties are often defined on a per-class basis, rather than in a single global definition for the entire data. The complexity of the per-class visual properties vary depending on what the situation requires and can span from a unique color to a fully defined class-specific transfer function. In this paper we use a single transfer function per class but apply the same shading scheme to all classes, however, it should be noted that this is a stylistic choice rather than a requirement of the approach.
+The basic idea behind rendering segmented data is identical to standard volume rendering: to select visual parameters based on the class membership of each sample\cite{kaufman2000real, VisHandbook, udupa2000three}. This is greatly simplified since the required class membership can be accessed directly though the label volume. Therefore, the visual properties are often defined on a per-class basis, rather than in a single global definition for the entire data. The complexity of the per-class visual properties vary depending on what the situation requires and can span from a unique color to a fully defined class-specific transfer function. In this paper we use a single transfer function per class but apply the same shading scheme to all classes, however, it should be noted that this is a stylistic choice rather than a requirement of the approach.
 
 A problem that arises when rendering segmented data is that the basic approach to `just sample the label volume' to extract class memberships is not as straight forward as one might think. The simplest solution is, of course, to apply nearest neighbor sampling, which is guaranteed to return a valid class membership. Unfortunately, this leads to boundaries with a very blocky appearance (see Figure~\ref{fig:nearestexample}). The membership operation is said to have \emph{voxel-resolution}. The most intuitive way to achieve a higher, \emph{pixel-resolution}, membership operation is naturally to allow for interpolation when sampling the label volume. This is, however, not guaranteed to return a valid class label unless there is no more than two classes in the entire volume. For example, an interpolation in a boundary area between class $3$ and class $5$ would return a class label of $4$ even if this was not existent at that particular location in the data (see Figure~\ref{fig:linearexample}). An approach to achieve a pixel-resolution membership operation for segmented data, called two-level volume rendering, was presented in \cite{Hadwiger2003}. In this approach, all eight neighboring grid points in the label volume are sampled to acquire the information necessary to remap the $3$--$5$ operation to a $0$--$1$ range and thereby avoid illegal interpolations. The result is much smoother boundary representations that are more visually pleasing. Unfortunately, the method requires an additional \emph{seven} samples per step along the ray which is many times unfeasible.
 
@@ -333,29 +333,43 @@ Example computations of ray contributions. The visible ray segment starts inside
 %-------------------------------------------------------------------------
 \subsection{Results}
 
+\begin{figure}
+	\centering
+	\subfigure [Two-Level Volume Rendering] {
+		\includegraphics[width=0.45\columnwidth]{figures/walnut_dual_full_singleslice_1.png}
+		\label{fig:result:single:twolevel}
+	}
+	\subfigure [Poor Man's Rendering] {
+		\includegraphics[width=0.45\columnwidth]{figures/walnut_dual_pms_singleslice_1.png}
+		\label{fig:result:single:pms}
+	}
+	\caption{Comparing a single slice off the Walnut dataset. In the areas between labeled regions, the opacity of the single sample is lowered due to the attenuation factor $t$ and therefore the background color is visible. Note that the thickness of the boundary region in our method is depending on the label values, whereas it is normalized in the two-level volume rendering approach. This is visible in (b) as the thickness between the cyan-red boundary is thinner than the violet-red boundary.}
+	\label{fig:result:single}
+\end{figure}
+
 \begin{figure*}
 	\centering
 	\subfigure [Two-Level Volume Rendering] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_full_slices_1.png}
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_full_slices_1_cut.png}
 		\label{fig:result:dual:twolevel}
 	}
-	\subfigure [Poor Man's Segmentation] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_pms_slices_1.png}
+	\subfigure [Poor Man's Rendering] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_pms_slices_1_cut.png}
 		\label{fig:result:dual:pms}
 	}
 	\subfigure [Two-Level Volume Rendering without Label Volume] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_full_slices_1.png}
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_full_slices_1_cut.png}
 		\label{fig:result:single:twolevel}
 	}
-	\subfigure [Poor Man's Segmentation without Label Volume] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_pms_slices_1.png}
+	\subfigure [Poor Man's Rendering without Label Volume] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_pms_slices_1_cut.png}
 		\label{fig:result:single:pms}
 	}
 	\subfigure [Nearest Neighbor] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_nearest_slices_1.png}
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_nearest_slices_1_cut.png}
 		\label{fig:result:nn}
 	}
-	\caption{Comparative results of the presented techniques. (b) and (d) show the Poor Man's Segmentation with and without a label volume respectively, while (a) and (c) are rendered using the Two-Level Volume Rendering approach. Note that while the both the Poor Man's Segmentation and the Two-Level approach produce much smoother and visually pleasing results than the nearest neighbor filtering in (e), the differences between them is minimal.}
+	\caption{Comparative results of the presented techniques. (b) and (d) show the Poor Man's Rendering with and without a label volume respectively, while (a) and (c) are rendered using the Two-Level Volume Rendering approach. Note that while the both the Poor Man's Rendering and the Two-Level approach produce much smoother and visually pleasing results than the nearest neighbor filtering in (e), the differences between them is minimal.}
 	\label{fig:result}
 \end{figure*}
 
@@ -365,7 +379,7 @@ Example computations of ray contributions. The visible ray segment starts inside
 		\includegraphics[width=\columnwidth]{figures/walnut_rendering_full.png}
 		\label{fig:result2:twolevel}
 	}
-	\subfigure[Poor Man's Segmentation] {
+	\subfigure[Poor Man's Rendering] {
 		\includegraphics[width=\columnwidth]{figures/walnut_rendering_pms.png}
 		\label{fig:result2:pms}
 	}
@@ -377,10 +391,15 @@ Example computations of ray contributions. The visible ray segment starts inside
 		\includegraphics[width=\columnwidth]{figures/walnut_rendering_10diff.png}
 		\label{fig:result2:diff10}
 	}
-	\caption{Rendering the segmented Walnut dataset with our proposed method. (a) shows the reference image, created using the two-level volume rendering, while (b) is rendered using Poor Man's Segmentation. (c) shows the absolute pixel-wise difference images between the two results and in (d) this difference is enhanced by one order of magnitude. As expected, the techniques differ only in the areas, where features touch whose label values differ by more than unity.}
+	\caption{Rendering the segmented Walnut dataset with our proposed method. (a) shows the reference image, created using the two-level volume rendering, while (b) is rendered using Poor Man's Rendering. (c) shows the absolute pixel-wise difference images between the two results and in (d) this difference is enhanced by one order of magnitude. As expected, the techniques differ only in the areas, where features touch whose label values differ by more than unity.}
+	\label{fig:result2}
 \end{figure*}
 
+In this section we present the results that we achieve using our two proposed techniques. The real world dataset we use is the Walnut with its accompanying segmentation, which we transformed into the encoded format for testing of the rendering without a label volume. 
 
+Figure~\ref{fig:result} shows a comparison between our implementation of the two-level volume rendering to our method both in the cases where a label volume is present and in the case of the encoded volume. The test images were created using a small stack of slices of the Walnut dataset with each label value assign to a unique, fully opaque color. It is clearly visible that both interpolation kernels produce a superior visual quality when compared with the nearest neighbor interpolation. However, despite minor (expected) visual artifacts (see lower left corner in~\ref{fig:result:dual:pms}) our method performs reasonably well and achieves a comparable result to the method employing a full neighborhood search for each segment. Figure~\ref{fig:result:single} shows the two-level volume rendering and the our method applied to a single slice of the volume. Note how the background color is visible between feature boundaries as the opacity of the samples is reduced by the attenuation factor $t$.
+
+Figure~\ref{fig:result2} is a comparison of the walnut dataset showing the different structures within the walnut. The visual result for each segment is determined by its own, separate 1-dimensional transfer function. Figure~\ref{fig:result2:twolevel}~and~\ref{fig:result2:pms} are rendered with the same rendering parameters and the differences between the two techniques are shown in Figures~\ref{fig:result2:diff}~and~\ref{fig:result2:diff10} with the difference magnified by a factor of 10. As expected, the bulk of difference is in the region around the center, where a segment with label value 4 is adjacent to the gray "air" surrounding it with a label value of 1. This means that the transition in our method is much sharper than in the reference image.
 
 
 
@@ -400,7 +419,7 @@ In this paper we have presented an approach to achieve smooth boundary transitio
 %------------------------------------------------------------------------
 \subsection{Acknowledgments}
 
-David Karlsson, technical director at Interactive Institute, for pointing out the gap in the literature that this method fills.
+David Karlsson, technical director at Interactive Institute, for pointing out the gap in the literature that this method fills. The presented concepts have been realized using the Voreen framework (www.voreen.org).
 
 %------------------------------------------------------------------------
 %\subsection{Copyright forms}
