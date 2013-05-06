@@ -36,6 +36,7 @@
 % prepare for electronic version of your document
 \usepackage{t1enc,dfadobe}
 
+\usepackage{subfigure}
 \usepackage{egweblnk}
 \usepackage{cite}
 
@@ -54,7 +55,7 @@
 \usepackage{amssymb}
 \usepackage{amsfonts}
 \usepackage{caption}
-\usepackage{subcaption} 
+%\usepackage{subcaption} 
 \usepackage{enumerate}
 %\usepackage{enumitem}
 %\usepackage{color}
@@ -165,6 +166,13 @@ In this paper we present a novel method that delivers results comparable to pixe
 
 %-------------------------------------------------------------------------
 \section{Poor Man's Rendering With Label Volume}
+\begin{figure}
+	\centering
+	\subfigure[Nearest neighbor]{\includegraphics[width=0.49\columnwidth]{figures/walnut_dual_nearest_singleslice_2.png}\label{fig:nearestexample}}
+	\subfigure[Linear] {\includegraphics[width=0.49\columnwidth]{figures/walnut_single_noseg_singleslice_2.png}\label{fig:linearexample}}
+	\caption{Using the two native interpolation kernels will result in undesired results. Nearest neighbor interpolation (a) will create a blocky result, visually unpleasing. Linear interpolation (b) will produce misclassifications between labels (see I and II) as the labels are integer values, and na\"ive linear interpolation will create a linear transition between the source values.}
+\end{figure}
+
 
 The implementation will be presented in three steps. First we provide details on how to sample a single texture with different interpolation kernels in OpenGL. We then present how to compute the actual class membership of each sample as well as the attenuation parameter $t$ that is used to smoothen the boundaries. 
 
@@ -328,6 +336,12 @@ Example computations of ray contributions. The visible ray segment starts inside
 %-------------------------------------------------------------------------
 \subsection{Results}
 
+%\begin{figure}
+%	\centering
+%	
+%\end{figure}
+
+
 
 
 %-------------------------------------------------------------------------
@@ -349,11 +363,11 @@ In this paper we have presented an approach to achieve smooth boundary transitio
 David Karlsson, technical director at Interactive Institute, for pointing out the gap in the literature that this method fills.
 
 %------------------------------------------------------------------------
-\subsection{Copyright forms}
-
-You must include your signed Eurographics copyright release form
-when you submit your finished paper. We MUST have this form before
-your paper can be published in the proceedings.
+%\subsection{Copyright forms}
+%
+%You must include your signed Eurographics copyright release form
+%when you submit your finished paper. We MUST have this form before
+%your paper can be published in the proceedings.
 
 %-------------------------------------------------------------------------
 
