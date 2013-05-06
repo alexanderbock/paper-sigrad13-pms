@@ -137,7 +137,7 @@
 \maketitle
 
 \begin{abstract}
-In this paper we present a set of techniques for fast and efficient rendering of segmented data. Our approach utilizes the expected difference between two co-located samples of a label volume, taken with different interpolation kernels, to estimate a feature boundary. This allows us to achieve smooth class boundaries without, as with previous methods, needing to sample all eight neighbors in the label volume. 
+In this paper we present a set of techniques for fast and efficient rendering of segmented data. Our approach utilizes the expected difference between two co-located texture lookups of a label volume, taken with different interpolation filters, as a feature boundary indicator. This allows us to achieve smooth class boundaries without needing to explicitly sample all eight neighbors in the label volume as is the case with previous methods. We also present a data encoding scheme that greatly simplifies transfer function construction.
 
 \begin{classification} % according to http://www.acm.org/class/1998/
 \CCScat{Computer Graphics}{I.3.6}{Picture/Image Generation}{Antialiasing}
@@ -157,13 +157,13 @@ In this paper we present a set of techniques for fast and efficient rendering of
 %-------------------------------------------------------------------------
 \section{Introduction}
 
-Rendering of segmented data is a core topic in the field of volume rendering. It is characterized in that it utilized external sources for the classification of grid points, rather than relying on user driven classification through, for example, a transfer function. By spending more resources on the classification as a pre-process step, much more reliable feature boundaries can be identified than what is possible through classification schemes applied at rendering time. Naturally, the topic of rendering segmented data is closely related to that of the actual segmentation. In this paper however, we assume that a full segmentation has been performed such that the \emph{source data} is complemented with a \emph{label volume}, i.e. an integer volume of the same dimensionality of the source data with a single per-voxel label denoting the class membership (material) of the voxel.
+Rendering of segmented data is a core topic in the field of volume rendering. It is characterized in that it utilized external sources for the classification of grid points, rather than relying on user driven classification through, for example, a transfer function. By spending more resources on the classification as a pre-process step, much more reliable feature boundaries can be identified than what is possible through classification schemes applied at rendering time. Naturally, the topic of rendering segmented data is closely related to that of the actual segmentation. See~\cite{kaufman2000real, VisHandbook, udupa2000three} for comprehensive overviews of the available literature. In this paper, we assume that a full segmentation has been performed such that the \emph{source data} is complemented with a \emph{label volume}, i.e. an integer volume of the same dimensionality of the source data with a single per-voxel label denoting the class membership (material) of the voxel.
 
-The basic idea behind rendering segmented data is identical to standard volume rendering: to select visual parameters based on the class membership of each sample\cite{kaufman2000real, VisHandbook, udupa2000three}. This is greatly simplified since the required class membership can be accessed directly though the label volume. Therefore, the visual properties are often defined on a per-class basis, rather than in a single global definition for the entire data. The complexity of the per-class visual properties vary depending on what the situation requires and can span from a unique color to a fully defined class-specific transfer function. In this paper we use a single transfer function per class but apply the same shading scheme to all classes, however, it should be noted that this is a stylistic choice rather than a requirement of the approach.
+The basic idea behind rendering segmented data is identical to standard volume rendering: to select visual parameters based on the class membership of each sample. This is greatly simplified since the required class membership can be accessed directly though the label volume. Therefore, the visual properties are often defined on a per-class basis, rather than in a single global definition for the entire data. The complexity of the per-class visual properties vary depending on what the situation requires and can span from a unique color to a fully defined class-specific transfer function. In this paper we use a single transfer function per class but apply the same shading scheme to all classes, however, it should be noted that this is a stylistic choice rather than a requirement of the approach.
 
-A problem that arises when rendering segmented data is that the basic approach to `just sample the label volume' to extract class memberships is not as straight forward as one might think. The simplest solution is, of course, to apply nearest neighbor sampling, which is guaranteed to return a valid class membership. Unfortunately, this leads to boundaries with a very blocky appearance (see Figure~\ref{fig:nearestexample}). The membership operation is said to have \emph{voxel-resolution}. The most intuitive way to achieve a higher, \emph{pixel-resolution}, membership operation is naturally to allow for interpolation when sampling the label volume. This is, however, not guaranteed to return a valid class label unless there is no more than two classes in the entire volume. For example, an interpolation in a boundary area between class $3$ and class $5$ would return a class label of $4$ even if this was not existent at that particular location in the data (see Figure~\ref{fig:linearexample}). An approach to achieve a pixel-resolution membership operation for segmented data, called two-level volume rendering, was presented in \cite{Hadwiger2003}. In this approach, all eight neighboring grid points in the label volume are sampled to acquire the information necessary to remap the $3$--$5$ operation to a $0$--$1$ range and thereby avoid illegal interpolations. The result is much smoother boundary representations that are more visually pleasing. Unfortunately, the method requires an additional \emph{seven} samples per step along the ray which is many times unfeasible.
+A problem that arises when rendering segmented data is that the basic approach to `just sample the label volume' to extract class memberships is not as straight forward as one might think. The simplest solution is, of course, to apply nearest neighbor sampling, which is guaranteed to return a valid class membership. Unfortunately, this leads to boundaries with a very blocky appearance (see Figure~\ref{fig:nearestexample}). The membership operation is said to have \emph{voxel-resolution}. The most intuitive way to achieve a higher, \emph{pixel-resolution}, membership operation is naturally to allow for interpolation when sampling the label volume. This is, however, not guaranteed to return a valid class label unless there is no more than two classes in the entire volume. For example, an interpolation in a boundary area between class $3$ and class $5$ would return a class label of $4$ even if this was not existent at that particular location in the data (see Figure~\ref{fig:linearexample}). An approach to achieve a pixel-resolution membership operation for segmented data, called two-level volume rendering, was presented in \cite{Hadwiger2003}. In this approach, all eight neighboring grid points in the label volume are sampled using nearest neighbor interpolation in order to acquire the information necessary to remap the $3$--$5$ operation to a $0$--$1$ range and thereby avoid illegal interpolations. The result is much smoother boundary representations that are more visually pleasing. Unfortunately, the method requires an additional \emph{seven} texture lookups per step along the ray which is many times unfeasible.
 
-In this paper we present a novel method that delivers results comparable to pixel-resolution schemes while only requiring a \emph{single} extra sample. The core of our approach is to sample the level volume twice at the same location, with and without interpolation (i.e, with nearest neighbor vs. linear filters). The difference between the two values is then used to smoothen the visual representation near class boundaries without creating incorrectly interpolated class values. We show that our method produces results visually comparable to methods that utilize full neighborhood sampling while requiring a factor of $7:1$ less additional samples. Additionally, we also present a data compression approach that removes the need to have the label volume accessible during rendering.
+In this paper we present a novel method that delivers results comparable to pixel-resolution schemes while only requiring a \emph{single} extra texture lookup. The core of our approach is to sample the level volume twice at the same location, with and without interpolation (i.e, with nearest neighbor vs. linear filtering). The difference between the two values is then used to smoothen the visual representation near class boundaries without creating incorrectly interpolated class values. We show that our method produces results visually comparable to methods that utilize full neighborhood sampling while requiring a factor of $7:1$ less additional texture lookups. Additionally, we also present a data compression approach that removes the need to have the label volume accessible during rendering.
 
 %-------------------------------------------------------------------------
 \section{Poor Man's Rendering With Label Volume}
@@ -171,15 +171,15 @@ In this paper we present a novel method that delivers results comparable to pixe
 	\centering
 	\subfigure[Nearest neighbor]{\includegraphics[width=0.49\columnwidth]{figures/walnut_dual_nearest_singleslice_2.png}\label{fig:nearestexample}}
 	\subfigure[Linear] {\includegraphics[width=0.49\columnwidth]{figures/walnut_single_noseg_singleslice_2.png}\label{fig:linearexample}}
-	\caption{Using the two native interpolation kernels will result in undesired results. Nearest neighbor interpolation (a) will create a blocky result, visually unpleasing. Linear interpolation (b) will produce misclassifications between labels (see I and II) as the labels are integer values, and na\"ive linear interpolation will create a linear transition between the source values.}
+	\caption{Using the two native interpolation kernels alone will result in undesired results. Nearest neighbor interpolation (a) will create a blocky result, visually unpleasing. Linear interpolation (b) will produce misclassifications between labels (see I and II) as the labels are integer values, and na\"ive linear interpolation will create a linear transition between the source values.}
 \end{figure}
 
 
-The implementation will be presented in three steps. First we provide details on how to sample a single texture with different interpolation kernels in OpenGL. We then present how to compute the actual class membership of each sample as well as the attenuation parameter $t$ that is used to smoothen the boundaries. 
+The implementation will be presented in three steps. First we provide a few brief details on how to sample a single texture with different interpolation filters in OpenGL. We then present how to compute the actual class membership of each sample as well as the attenuation parameter $t$ that is used to smoothen the boundaries. 
 
 \subsection*{Nearest Neighbor and Linear Sampling}
 
-As previously noted, the implementation relies on sampling the the same volume twice with different interpolation kernels. For many architectures, however, a single texture can only be associated with a single sampling mode. One way to get around this restriction is to always force the label volume to be associated with linear interpolation. The nearest neighbor sample can then be accessed by adding an offset that forces this sample directly to the center of the nearest voxel. The nearest grid point can be accessed as follows
+As previously noted, the implementation relies on sampling the the same volume twice with different interpolation filters. For many architectures, however, a single texture can only be associated with a single sampling mode. One way to get around this restriction is to always force the label volume to be associated with linear interpolation. The nearest neighbor sample can then be accessed by adding an offset that forces the sample to be taken at the center of the nearest voxel. The nearest grid point can be accessed as follows
 \begin{align}
 s_\mathrm{near} &= \mathrm{floor}\big(s + vec3(0.5)\big) \label{eq:near}  
 \end{align}
@@ -189,6 +189,42 @@ where $s$ is the original sample position along the ray and $s_\mathrm{lin}$ is 
 Once the linear and nearest sample points have been computed, they are used to extract the linear and nearest values from the label volume, $l_\mathrm{lin}$ and $l_\mathrm{near}$ respectively.
 
 \subsection*{Class Membership and Class Attenuation}
+
+\begin{figure*}
+\centering
+\begin{minipage}{0.44\linewidth}
+\includegraphics[width=1.0\linewidth]{figures/Neighborhood_all}
+\end{minipage}\hfill
+\begin{minipage}{0.27\linewidth}
+\begin{minipage}{1.0\linewidth}
+\includegraphics[width=1.0\linewidth]{figures/Neighborhood_red}
+\end{minipage}
+\begin{minipage}{1.0\linewidth}
+\begin{align}
+l_\mathrm{near} &= 2\nonumber\\
+l_\mathrm{lin} &= 2.2\nonumber\\
+t &= \mathrm{abs}(2.2-2)\nonumber\\
+\alpha' &= (1-(2t)^2) \,\alpha = 0.96 \,\alpha \nonumber
+\end{align}
+\end{minipage}
+\end{minipage}\hfill
+\begin{minipage}{0.27\linewidth}
+\begin{minipage}{1.0\linewidth}
+\includegraphics[width=1.0\linewidth]{figures/Neighborhood_blue}
+\end{minipage}
+\begin{minipage}{1.0\linewidth}
+\begin{align}
+l_\mathrm{near} &= 3\nonumber\\
+l_\mathrm{lin} &= 2.6\nonumber\\
+t &= \mathrm{abs}(2.6-3)\nonumber\\
+\alpha' &= (1-(2t)^2) \,\alpha = 0.36 \,\alpha \nonumber
+\end{align}
+\end{minipage}
+\end{minipage}
+\caption{\label{fig:example-illustration}
+Example computations of ray contributions. The visible ray segment starts inside the red feature (class id 2), and ends inside the blue feature (class id 3). The class membership of the two samples taken in between the features needs to be decided. In our approach, their membership is fully determined by a nearest neighbor query in the label volume (here resulting in $l_\mathrm{near}=2$ and $l_\mathrm{near}=3$ respectively). However, in order to achieve smooth boundaries at pixel-resolution we employ an alpha modulation based on the difference between the the nearest query and another query using linear interpolation (here resulting in $l_\mathrm{near}=2.2$ and $l_\mathrm{near}=2.6$ respectively). 
+}
+\end{figure*}
 
 In our approach the class membership is directly decided by the nearest neighbor sample in the label volume, $l_\mathrm{lin}$. This means that membership itself is defined at voxel-resolution. To achieve smoother class boundaries we introduce a \emph{class attenuation parameter}, $t$.
 
@@ -202,7 +238,7 @@ Interpreting the attenuation parameter as a boundary indicator, we use it to adj
 \begin{align}
 \alpha' &= (1-(2t)^2) \,\alpha  .  \label{eq:alpha}
 \end{align}
-The full process is described in Algorithm~\ref{code:1}.
+The full process is described in Algorithm~\ref{code:1} and illustrated in Figure~\ref{fig:example-illustration}.
 
 \begin{algorithm}[t]
 %\renewcommand{\thealgorithm}{1}
@@ -292,42 +328,6 @@ A transfer function, $\mathrm{TF}_i$ for each label $l_i$
 \end{algorithm}
 
 
-\begin{figure*}
-\centering
-\begin{minipage}{0.44\linewidth}
-\includegraphics[width=1.0\linewidth]{figures/Neighborhood_all}
-\end{minipage}\hfill
-\begin{minipage}{0.27\linewidth}
-\begin{minipage}{1.0\linewidth}
-\includegraphics[width=1.0\linewidth]{figures/Neighborhood_red}
-\end{minipage}
-\begin{minipage}{1.0\linewidth}
-\begin{align}
-l_\mathrm{near} &= 2\nonumber\\
-l_\mathrm{lin} &= 2.2\nonumber\\
-t &= \mathrm{abs}(2.2-2)\nonumber\\
-\alpha' &= (1-(2t)^2) \,\alpha = 0.96 \,\alpha \nonumber
-\end{align}
-\end{minipage}
-\end{minipage}\hfill
-\begin{minipage}{0.27\linewidth}
-\begin{minipage}{1.0\linewidth}
-\includegraphics[width=1.0\linewidth]{figures/Neighborhood_blue}
-\end{minipage}
-\begin{minipage}{1.0\linewidth}
-\begin{align}
-l_\mathrm{near} &= 3\nonumber\\
-l_\mathrm{lin} &= 2.6\nonumber\\
-t &= \mathrm{abs}(2.6-3)\nonumber\\
-\alpha' &= (1-(2t)^2) \,\alpha = 0.36 \,\alpha \nonumber
-\end{align}
-\end{minipage}
-\end{minipage}
-\caption{\label{fig:example-illustration}
-Example computations of ray contributions. The visible ray segment starts inside the red feature (class id 2), and ends inside the blue feature (class id 3). The class membership of the two samples taken in between the features needs to be decided. In our approach, their membership is fully determined by a nearest neighbor query in the label volume (here resulting in $l_\mathrm{near}=2$ and $l_\mathrm{near}=3$ respectively). However, in order to achieve smooth boundaries at pixel-resolution we employ an alpha modulation based on the difference between the the nearest query and another query using linear interpolation (here resulting in $l_\mathrm{near}=2.2$ and $l_\mathrm{near}=2.6$ respectively). 
-}
-\end{figure*}
-
 
 
 %-------------------------------------------------------------------------
@@ -347,55 +347,7 @@ Example computations of ray contributions. The visible ray segment starts inside
 	\label{fig:result:single}
 \end{figure}
 
-\begin{figure*}
-	\centering
-	\subfigure [Two-Level Volume Rendering] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_full_slices_1_cut.png}
-		\label{fig:result:dual:twolevel}
-	}
-	\subfigure [Poor Man's Rendering] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_pms_slices_1_cut.png}
-		\label{fig:result:dual:pms}
-	}
-	\subfigure [Two-Level Volume Rendering without Label Volume] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_full_slices_1_cut.png}
-		\label{fig:result:single:twolevel}
-	}
-	\subfigure [Poor Man's Rendering without Label Volume] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_pms_slices_1_cut.png}
-		\label{fig:result:single:pms}
-	}
-	\subfigure [Nearest Neighbor] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_nearest_slices_1_cut.png}
-		\label{fig:result:nn}
-	}
-	\caption{Comparative results of the presented techniques. (b) and (d) show the Poor Man's Rendering with and without a label volume respectively, while (a) and (c) are rendered using the Two-Level Volume Rendering approach. Note that while the both the Poor Man's Rendering and the Two-Level approach produce much smoother and visually pleasing results than the nearest neighbor filtering in (e), the differences between them is minimal.}
-	\label{fig:result}
-\end{figure*}
-
-\begin{figure*}
-	\centering
-	\subfigure[Two-Level Volume Rendering] {
-		\includegraphics[width=\columnwidth]{figures/walnut_rendering_full.png}
-		\label{fig:result2:twolevel}
-	}
-	\subfigure[Poor Man's Rendering] {
-		\includegraphics[width=\columnwidth]{figures/walnut_rendering_pms.png}
-		\label{fig:result2:pms}
-	}
-	\subfigure[Difference Image] {
-		\includegraphics[width=\columnwidth]{figures/walnut_rendering_1diff.png}
-		\label{fig:result2:diff}
-	}
-	\subfigure[Difference Image (x10)] {
-		\includegraphics[width=\columnwidth]{figures/walnut_rendering_10diff.png}
-		\label{fig:result2:diff10}
-	}
-	\caption{Rendering the segmented Walnut dataset with our proposed method. (a) shows the reference image, created using the two-level volume rendering, while (b) is rendered using Poor Man's Rendering. (c) shows the absolute pixel-wise difference images between the two results and in (d) this difference is enhanced by one order of magnitude. As expected, the techniques differ only in the areas, where features touch whose label values differ by more than unity.}
-	\label{fig:result2}
-\end{figure*}
-
-In this section we present the results that we achieve using our two proposed techniques. The real world dataset we use is the Walnut with its accompanying segmentation, which we transformed into the encoded format for testing of the rendering without a label volume. 
+In this section we present the results that we achieve using our two proposed techniques. The real world dataset we use is the Walnut with its accompanying segmentation. For the comparisons we have applied alpha attenuation in boundary regions also for two-level volume rendering although this was not a part of the original presentation.
 
 Figure~\ref{fig:result} shows a comparison between our implementation of the two-level volume rendering to our method both in the cases where a label volume is present and in the case of the encoded volume. The test images were created using a small stack of slices of the Walnut dataset with each label value assign to a unique, fully opaque color. It is clearly visible that both interpolation kernels produce a superior visual quality when compared with the nearest neighbor interpolation. However, despite minor (expected) visual artifacts (see lower left corner in~\ref{fig:result:dual:pms}) our method performs reasonably well and achieves a comparable result to the method employing a full neighborhood search for each segment. Figure~\ref{fig:result:single} shows the two-level volume rendering and the our method applied to a single slice of the volume. Note how the background color is visible between feature boundaries as the opacity of the samples is reduced by the attenuation factor $t$.
 
@@ -429,6 +381,57 @@ David Karlsson, technical director at Interactive Institute, for pointing out th
 %your paper can be published in the proceedings.
 
 %-------------------------------------------------------------------------
+
+
+\begin{figure*}[p]
+	\centering
+	\subfigure [Two-Level Volume Rendering] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_full_slices_1_cut.png}
+		\label{fig:result:dual:twolevel}
+	}
+	\subfigure [Poor Man's Rendering] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_pms_slices_1_cut.png}
+		\label{fig:result:dual:pms}
+	}
+	\subfigure [Two-Level Volume Rendering without Label Volume] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_full_slices_1_cut.png}
+		\label{fig:result:single:twolevel}
+	}
+	\subfigure [Poor Man's Rendering without Label Volume] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_pms_slices_1_cut.png}
+		\label{fig:result:single:pms}
+	}
+	\subfigure [Nearest Neighbor] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_nearest_slices_1_cut.png}
+		\label{fig:result:nn}
+	}
+	\caption{Comparative results of the presented techniques. (b) and (d) show the Poor Man's Rendering with and without a label volume respectively, while (a) and (c) are rendered using the Two-Level Volume Rendering approach. Note that while the both the Poor Man's Rendering and the Two-Level approach produce much smoother and visually pleasing results than the nearest neighbor filtering in (e), the differences between them is minimal.}
+	\label{fig:result}
+\end{figure*}
+
+\begin{figure*}[p]
+	\centering
+	\subfigure[Two-Level Volume Rendering] {
+		\includegraphics[width=\columnwidth]{figures/walnut_rendering_full.png}
+		\label{fig:result2:twolevel}
+	}
+	\subfigure[Poor Man's Rendering] {
+		\includegraphics[width=\columnwidth]{figures/walnut_rendering_pms.png}
+		\label{fig:result2:pms}
+	}
+	\subfigure[Difference Image] {
+		\includegraphics[width=\columnwidth]{figures/walnut_rendering_1diff.png}
+		\label{fig:result2:diff}
+	}
+	\subfigure[Difference Image (x10)] {
+		\includegraphics[width=\columnwidth]{figures/walnut_rendering_10diff.png}
+		\label{fig:result2:diff10}
+	}
+	\caption{Rendering the segmented Walnut dataset with our proposed method. (a) shows the reference image, created using the two-level volume rendering, while (b) is rendered using Poor Man's Rendering. (c) shows the absolute pixel-wise difference images between the two results and in (d) this difference is enhanced by one order of magnitude. As expected, the techniques differ only in the areas, where features touch whose label values differ by more than unity.}
+	\label{fig:result2}
+\end{figure*}
+
+
 
 \bibliographystyle{eg-alpha}
 
