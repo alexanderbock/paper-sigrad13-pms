@@ -333,10 +333,53 @@ Example computations of ray contributions. The visible ray segment starts inside
 %-------------------------------------------------------------------------
 \subsection{Results}
 
-%\begin{figure}
-%	\centering
-%	
-%\end{figure}
+\begin{figure*}
+	\centering
+	\subfigure [Two-Level Volume Rendering] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_full_slices_1.png}
+		\label{fig:result:dual:twolevel}
+	}
+	\subfigure [Poor Man's Segmentation] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_pms_slices_1.png}
+		\label{fig:result:dual:pms}
+	}
+	\subfigure [Two-Level Volume Rendering without Label Volume] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_full_slices_1.png}
+		\label{fig:result:single:twolevel}
+	}
+	\subfigure [Poor Man's Segmentation without Label Volume] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_pms_slices_1.png}
+		\label{fig:result:single:pms}
+	}
+	\subfigure [Nearest Neighbor] {
+		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_nearest_slices_1.png}
+		\label{fig:result:nn}
+	}
+	\caption{Comparative results of the presented techniques. (b) and (d) show the Poor Man's Segmentation with and without a label volume respectively, while (a) and (c) are rendered using the Two-Level Volume Rendering approach. Note that while the both the Poor Man's Segmentation and the Two-Level approach produce much smoother and visually pleasing results than the nearest neighbor filtering in (e), the differences between them is minimal.}
+	\label{fig:result}
+\end{figure*}
+
+\begin{figure*}
+	\centering
+	\subfigure[Two-Level Volume Rendering] {
+		\includegraphics[width=\columnwidth]{figures/walnut_rendering_full.png}
+		\label{fig:result2:twolevel}
+	}
+	\subfigure[Poor Man's Segmentation] {
+		\includegraphics[width=\columnwidth]{figures/walnut_rendering_pms.png}
+		\label{fig:result2:pms}
+	}
+	\subfigure[Difference Image] {
+		\includegraphics[width=\columnwidth]{figures/walnut_rendering_1diff.png}
+		\label{fig:result2:diff}
+	}
+	\subfigure[Difference Image (x10)] {
+		\includegraphics[width=\columnwidth]{figures/walnut_rendering_10diff.png}
+		\label{fig:result2:diff10}
+	}
+	\caption{Rendering the segmented Walnut dataset with our proposed method. (a) shows the reference image, created using the two-level volume rendering, while (b) is rendered using Poor Man's Segmentation. (c) shows the absolute pixel-wise difference images between the two results and in (d) this difference is enhanced by one order of magnitude. As expected, the techniques differ only in the areas, where features touch whose label values differ by more than unity.}
+\end{figure*}
+
 
 
 
