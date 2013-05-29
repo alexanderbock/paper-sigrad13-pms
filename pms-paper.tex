@@ -179,7 +179,7 @@ The implementation will be presented in three steps. First we provide a few brie
 
 \subsection*{Nearest Neighbor and Linear Sampling}
 
-As previously noted, the implementation relies on sampling the the same volume twice with different interpolation filters. For many architectures, however, a single texture can only be associated with a single sampling mode. One way to get around this restriction is to always force the label volume to be associated with linear interpolation. The nearest neighbor sample can then be accessed by adding an offset that forces the sample to be taken at the center of the nearest voxel. The nearest grid point can be accessed as follows
+As previously noted, the implementation relies on sampling the same volume twice with different interpolation filters. For many architectures, however, a single texture can only be associated with a single sampling mode. One way to get around this restriction is to always force the label volume to be associated with linear interpolation. The nearest neighbor sample can then be accessed by adding an offset that forces the sample to be taken at the center of the nearest voxel. The nearest grid point can be accessed as follows
 \begin{align}
 s_\mathrm{near} &= \mathrm{floor}\big(s + vec3(0.5)\big) \label{eq:near}  
 \end{align}
@@ -234,7 +234,7 @@ t &= \mathrm{abs}(l_\mathrm{lin} - l_\mathrm{near})  .  \label{eq:attenuation}
 \end{align}
 In Equation~\ref{eq:attenuation}, we see that $t=0$ as long as the interpolated value is identical to the nearest neighbor value. This will be the case as long as the local neighborhood around the sample point only contains a single class. We can also note that if the local neighborhood contains two or more classes, then $t > 0$. The class attenuation parameter thereby functions as a boundary indicator.
 
-Interpreting the attenuation parameter as a boundary indicator, we use it to adjust the opacity of the current sample. Ideally, we want full opacity when the samples are fully inside a single class and zero opacity when samples are half way in between two (or more) classes. Unfortunately, this requires us to know all classes that effect the interpolated value, which in turn would require us to sample the entire neighborhood in the label volume (which we don't want to do). Instead, we always map the opacity to zero as $t$ reaches $0.5$ 
+Interpreting the attenuation parameter as a boundary indicator, we use it to adjust the opacity of the current sample. Ideally, we want full opacity when the samples are fully inside a single class and zero opacity when samples are half way in between two (or more) classes. Unfortunately, this requires us to know all classes that affect the interpolated value, which in turn would require us to sample the entire neighborhood in the label volume (which we don't want to do). Instead, we always map the opacity to zero as $t$ reaches $0.5$ 
 \begin{align}
 \alpha' &= (1-(2t)^2) \,\alpha  .  \label{eq:alpha}
 \end{align}
@@ -278,7 +278,7 @@ l_1&: [0.3,0.5] \mapsto [0.1,0.3] \nonumber\\
 l_2&: [0.2,0.7] \mapsto [0.4,0.6] \nonumber\\
 l_3&: [0.1,0.5] \mapsto [0.7,0.9] \nonumber  .
 \end{align}
-This mapping makes it possible to determine the class of a sample solely based on which unique range it belong to. Note that interpolation in this volume can still lead to invalid results. The data encoding is performed as a pre-process step and the encoded volume replaces the source volume on the GPU. Meta information from the mappings also needs to be uploaded in order to decode the volume during rendering. The decoding process is simply the inverse of the linear mapping for each class. 
+This mapping makes it possible to determine the class of a sample solely based on which unique range it belongs to. Note that interpolation in this volume can still lead to invalid results. The data encoding is performed as a pre-process step and the encoded volume replaces the source volume on the GPU. Meta information from the mappings also needs to be uploaded in order to decode the volume during rendering. The decoding process is simply the inverse of the linear mapping for each class. 
 
 The computation of the attenuation parameter $t$ without a label volume works as follows. Two samples are taken from the encoded volume, with nearest neighbor ($e_\mathrm{near}$) and linear interpolation ($e_\mathrm{lin}$) respectively. First, the nearest neighbor sample is used to identify the label and its valid value range (from the uploaded mapping information)
 \begin{align}
@@ -355,10 +355,14 @@ Figure~\ref{fig:result2} is a comparison of the walnut dataset showing the diffe
 
 
 
+
+
 %-------------------------------------------------------------------------
 \subsection{Discussion}
 
-In this paper we have presented an approach to achieve smooth boundary transitions when rendering segmented data while maintaining acceptable framerates. The approach drastically reduces the amount of samples necessary to achieve the boundary smoothness, but does so at the cost introducing minor irregularities. As such, our approach fills the gap between nearest neighbor class assignment and methods that rely on full neighborhood analysis. We believe that the approach can be useful in many cases where acceptable framerates are a necessity, particularly when used together with the presented encoding scheme.
+In this paper we have presented an approach to achieve smooth boundary transitions when rendering segmented data while significantly reducing the number of necessary texture lookups compared to methods based on full neighborhood analysis. The approach drastically reduces the amount of samples necessary to achieve the boundary smoothness, but does so at the cost introducing minor irregularities. The artifacts introduced by Poor Mans Rendering has two main visual manifestations. The first is an apparent widening of the transitional region between two segments. This behavior is predictable and can be minimized by intelligent selection of segment labels. For example, if a volume contains three segments but two of the segments never overlap, then the numerical label values can be selected such that the difference between two neighboring values never exceeds one, in which case any widening will be prevented. The second visual artifact is a non-smooth transition in neighborhoods heavily dominated by a single segment, such as the bottom of a depression. In such cases, the attenuation parameter is not guaranteed to reach zero before the nearest neighbor switches, resulting in a less smooth transition. It is possible to lower the impact of this artifact is to apply a stronger mapping in Equation~\ref{eq:alpha}.
+
+We believe our approach fills the gap between nearest neighbor class assignment and methods that rely on full neighborhood analysis. It could potentially be useful in cases where acceptable framerates have a high priority, such as previewing large datasets, interaction and transfer function design. The option to encode the segment membership together with the source data should also simplify rendering of segmented volume data on systems that may only have a single global transfer function. 
 
 %In short\dots
 %\begin{itemize}
