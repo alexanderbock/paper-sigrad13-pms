@@ -362,6 +362,8 @@ Figure~\ref{fig:result2} is a comparison of the walnut dataset showing the diffe
 
 In this paper we have presented an approach to achieve smooth boundary transitions when rendering segmented data while significantly reducing the number of necessary texture lookups compared to methods based on full neighborhood analysis. The approach drastically reduces the amount of samples necessary to achieve the boundary smoothness, but does so at the cost introducing minor irregularities. The artifacts introduced by Poor Mans Rendering has two main visual manifestations. The first is an apparent widening of the transitional region between two segments. This behavior is predictable and can be minimized by intelligent selection of segment labels. For example, if a volume contains three segments but two of the segments never overlap, then the numerical label values can be selected such that the difference between two neighboring values never exceeds one, in which case any widening will be prevented. The second visual artifact is a non-smooth transition in neighborhoods heavily dominated by a single segment, such as the bottom of a depression. In such cases, the attenuation parameter is not guaranteed to reach zero before the nearest neighbor switches, resulting in a less smooth transition. It is possible to lower the impact of this artifact is to apply a stronger mapping in Equation~\ref{eq:alpha}.
 
+In terms of performance, the value of the presented methods depends on a set of circumstances, some more predictable than others. For example, an application that is heavily bottlenecked by texture lookups is far more likely to see significant speedups than an application that spends most of its time of computations. On the other hand, the impact of the introduced irregularities will vary between different lighting and transfer function combinations which makes the assessment on the speed-vs-performance trade-off very much case dependent. 
+
 We believe our approach fills the gap between nearest neighbor class assignment and methods that rely on full neighborhood analysis. It could potentially be useful in cases where acceptable framerates have a high priority, such as previewing large datasets, interaction and transfer function design. The option to encode the segment membership together with the source data should also simplify rendering of segmented volume data on systems that may only have a single global transfer function. 
 
 %In short\dots
@@ -386,59 +388,72 @@ David Karlsson, technical director at Interactive Institute, for pointing out th
 
 %-------------------------------------------------------------------------
 
+\newpage
+
+\bibliographystyle{eg-alpha}
+
+\bibliography{bibliography}
+
 
 \begin{figure*}[p]
 	\centering
-	\subfigure [Two-Level Volume Rendering] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_full_slices_1_cut.png}
-		\label{fig:result:dual:twolevel}
-	}
-	\subfigure [Poor Man's Rendering] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_pms_slices_1_cut.png}
-		\label{fig:result:dual:pms}
-	}
-	\subfigure [Two-Level Volume Rendering without Label Volume] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_full_slices_1_cut.png}
-		\label{fig:result:single:twolevel}
-	}
-	\subfigure [Poor Man's Rendering without Label Volume] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_single_pms_slices_1_cut.png}
-		\label{fig:result:single:pms}
-	}
+\begin{minipage}{0.2\linewidth}\centering
 	\subfigure [Nearest Neighbor] {
-		\includegraphics[width=0.75\columnwidth]{figures/walnut_dual_nearest_slices_1_cut.png}
+		\includegraphics[width=0.9\columnwidth]{figures/walnut_dual_nearest_slices_1_cut.png}
 		\label{fig:result:nn}
 	}
+\end{minipage}\hspace{8mm}
+\begin{minipage}{0.46\linewidth}\centering
+\begin{minipage}{1.0\linewidth}
+	\subfigure [Two-Level Volume Rendering] {
+		\includegraphics[width=0.45\columnwidth]{figures/walnut_dual_full_slices_1_cut.png}
+		\label{fig:result:dual:twolevel}
+	}\hfill
+	\subfigure [Poor Man's Rendering] {
+		\includegraphics[width=0.45\columnwidth]{figures/walnut_dual_pms_slices_1_cut.png}
+		\label{fig:result:dual:pms}
+	}
+\end{minipage}
+\begin{minipage}{1.0\linewidth}
+	\subfigure [Two-Level Volume Rendering without Label Volume] {
+		\includegraphics[width=0.45\columnwidth]{figures/walnut_single_full_slices_1_cut.png}
+		\label{fig:result:single:twolevel}
+	}\hfill
+	\subfigure [Poor Man's Rendering without Label Volume] {
+		\includegraphics[width=0.45\columnwidth]{figures/walnut_single_pms_slices_1_cut.png}
+		\label{fig:result:single:pms}
+	}
+\end{minipage}
+\end{minipage}
 	\caption{Comparative results of the presented techniques. (b) and (d) show the Poor Man's Rendering with and without a label volume respectively, while (a) and (c) are rendered using the Two-Level Volume Rendering approach. Note that while the both the Poor Man's Rendering and the Two-Level approach produce much smoother and visually pleasing results than the nearest neighbor filtering in (e), the differences between them is minimal.}
 	\label{fig:result}
 \end{figure*}
 
 \begin{figure*}[p]
 	\centering
+\begin{minipage}{0.76\linewidth}\hfill
 	\subfigure[Two-Level Volume Rendering] {
-		\includegraphics[width=\columnwidth]{figures/walnut_rendering_full.png}
+		\includegraphics[width=0.45\columnwidth]{figures/walnut_rendering_full.png}
 		\label{fig:result2:twolevel}
-	}
+	}\hfill
 	\subfigure[Poor Man's Rendering] {
-		\includegraphics[width=\columnwidth]{figures/walnut_rendering_pms.png}
+		\includegraphics[width=0.45\columnwidth]{figures/walnut_rendering_pms.png}
 		\label{fig:result2:pms}
-	}
+	}\hfill\hfill
+\end{minipage}
+\begin{minipage}{0.22\linewidth}\centering
 	\subfigure[Difference Image] {
-		\includegraphics[width=\columnwidth]{figures/walnut_rendering_1diff.png}
+		\includegraphics[width=0.9\columnwidth]{figures/walnut_rendering_1diff.png}
 		\label{fig:result2:diff}
 	}
 	\subfigure[Difference Image (x10)] {
-		\includegraphics[width=\columnwidth]{figures/walnut_rendering_10diff.png}
+		\includegraphics[width=0.9\columnwidth]{figures/walnut_rendering_10diff.png}
 		\label{fig:result2:diff10}
 	}
+\end{minipage}
 	\caption{Rendering the segmented Walnut dataset with our proposed method. (a) shows the reference image, created using the two-level volume rendering, while (b) is rendered using Poor Man's Rendering. (c) shows the absolute pixel-wise difference images between the two results and in (d) this difference is enhanced by one order of magnitude. As expected, the techniques differ only in the areas, where features touch whose label values differ by more than unity.}
 	\label{fig:result2}
 \end{figure*}
 
-
-
-\bibliographystyle{eg-alpha}
-
-\bibliography{bibliography}
 
 \end{document}
