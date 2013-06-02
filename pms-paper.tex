@@ -169,8 +169,8 @@ In this paper we present a novel method that delivers results comparable to pixe
 \section{Poor Man's Rendering With Label Volume}
 \begin{figure}
 	\centering
-	\subfigure[Nearest neighbor]{\includegraphics[width=0.49\columnwidth]{figures/walnut_dual_nearest_singleslice_2.png}\label{fig:nearestexample}}
-	\subfigure[Linear] {\includegraphics[width=0.49\columnwidth]{figures/walnut_single_noseg_singleslice_2.png}\label{fig:linearexample}}
+	\subfigure[Nearest neighbor]{\includegraphics[width=0.49\columnwidth]{figures/nearest_interpolation.png}\label{fig:nearestexample}}
+	\subfigure[Linear] {\includegraphics[width=0.49\columnwidth]{figures/linear_interpolation.png}\label{fig:linearexample}}
 	\caption{Using the two native interpolation kernels alone will result in undesired results. Nearest neighbor interpolation (a) will create a blocky result, visually unpleasing. Linear interpolation (b) will produce misclassifications between labels (see I and II) as the labels are integer values, and na\"ive linear interpolation will create a linear transition between the source values.}
 \end{figure}
 
@@ -336,16 +336,37 @@ A transfer function, $\mathrm{TF}_i$ for each label $l_i$
 \begin{figure}
 	\centering
 	\subfigure [Two-Level Volume Rendering] {
-		\includegraphics[width=0.45\columnwidth]{figures/walnut_dual_full_singleslice_1.png}
+		\includegraphics[width=0.45\columnwidth]{figures/comparison_twolevel.png}
 		\label{fig:result:single:twolevel}
 	}
 	\subfigure [Poor Man's Rendering] {
-		\includegraphics[width=0.45\columnwidth]{figures/walnut_dual_pms_singleslice_1.png}
+		\includegraphics[width=0.45\columnwidth]{figures/comparison_pms.png}
 		\label{fig:result:single:pms}
 	}
-	\caption{Comparing a single slice off the Walnut dataset. In the areas between labeled regions, the opacity of the single sample is lowered due to the attenuation factor $t$ and therefore the background color is visible. Note that the thickness of the boundary region in our method is depending on the label values, whereas it is normalized in the two-level volume rendering approach. This is visible in (b) as the thickness between the cyan-red boundary is thinner than the violet-red boundary.}
+	\caption{Comparing a single slice off the Walnut dataset. In the areas between labeled regions, the opacity of the single sample is lowered due to the attenuation factor $t$ and therefore the background color is visible. Note that the thickness of the boundary region in our method is depending on the label values, whereas it is normalized in the two-level volume rendering approach. This is visible in (b) as the width between the violet-red boundary is thinner than the violet-yellow boundary.}
 	\label{fig:result:single}
 \end{figure}
+
+\begin{figure*}
+	\centering
+	\subfigure[Nearest Neighbor] {
+		\includegraphics[width=0.5\columnwidth]{figures/synthetic_nearest.png}
+		\label{fig:result:synthetic:nearest}
+	}
+	\subfigure[Two-Level Volume Rendering] {
+		\includegraphics[width=0.5\columnwidth]{figures/synthetic_twolevel.png}
+		\label{fig:result:synthetic:twolevel}
+	}
+	\subfigure[Poor Man's Rendering] {
+		\includegraphics[width=0.5\columnwidth]{figures/synthetic_pms.png}
+		\label{fig:result:synthetic:pms}
+	}
+	\subfigure[Intensites] {
+		\includegraphics[height=0.5\columnwidth]{figures/synthetic_intensities.png}
+		\label{fig:result:synthetic:intensities}
+	}
+	\caption{Rendering a synthetic dataset with the Two-Level Volume Rendering (b) and the Poor Man's Segmentation (c) compared to the nearest neighbor filtering (a). (d) shows the values and the ordering of the intensity values for this dataset. As expected, the Two-Level Volume Rendering produces uniform boundaries regardless value difference. In the Poor Man's rendering, the boundary regions are dependent on the intensity value difference of the features. Both methods show a visual artefact in the area where three features coincide and the linear interpolation of green and blue results in yellow.}
+\end{figure*}
 
 In this section we present the results that we achieve using our two proposed techniques. The real world dataset we use is the Walnut with its accompanying segmentation. For the comparisons we have applied alpha attenuation in boundary regions also for two-level volume rendering although this was not a part of the original presentation.
 
@@ -388,7 +409,7 @@ David Karlsson, technical director at Interactive Institute, for pointing out th
 
 %-------------------------------------------------------------------------
 
-\newpage
+%\newpage
 
 \bibliographystyle{eg-alpha}
 
@@ -399,28 +420,28 @@ David Karlsson, technical director at Interactive Institute, for pointing out th
 	\centering
 \begin{minipage}{0.2\linewidth}\centering
 	\subfigure [Nearest Neighbor] {
-		\includegraphics[width=0.9\columnwidth]{figures/walnut_dual_nearest_slices_1_cut.png}
+		\includegraphics[width=0.9\columnwidth]{figures/nearest.png}
 		\label{fig:result:nn}
 	}
 \end{minipage}\hspace{8mm}
 \begin{minipage}{0.46\linewidth}\centering
 \begin{minipage}{1.0\linewidth}
 	\subfigure [Two-Level Volume Rendering] {
-		\includegraphics[width=0.45\columnwidth]{figures/walnut_dual_full_slices_1_cut.png}
+		\includegraphics[width=0.45\columnwidth]{figures/dual_twolevel.png}
 		\label{fig:result:dual:twolevel}
 	}\hfill
 	\subfigure [Poor Man's Rendering] {
-		\includegraphics[width=0.45\columnwidth]{figures/walnut_dual_pms_slices_1_cut.png}
+		\includegraphics[width=0.45\columnwidth]{figures/dual_pms.png}
 		\label{fig:result:dual:pms}
 	}
 \end{minipage}
 \begin{minipage}{1.0\linewidth}
 	\subfigure [Two-Level Volume Rendering without Label Volume] {
-		\includegraphics[width=0.45\columnwidth]{figures/walnut_single_full_slices_1_cut.png}
+		\includegraphics[width=0.45\columnwidth]{figures/single_twolevel.png}
 		\label{fig:result:single:twolevel}
 	}\hfill
 	\subfigure [Poor Man's Rendering without Label Volume] {
-		\includegraphics[width=0.45\columnwidth]{figures/walnut_single_pms_slices_1_cut.png}
+		\includegraphics[width=0.45\columnwidth]{figures/single_pms.png}
 		\label{fig:result:single:pms}
 	}
 \end{minipage}
